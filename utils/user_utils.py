@@ -3,12 +3,12 @@
 """
 
 
-from bilibili_api import user as bau
+from bilibili_api import user as bau, live as bal, sync
 from writer import log_writer as lw
 from bilibili_api import Credential
 
 
-class BiliUser(bau.User):
+class BiliUser(bau.User, bal.LiveRoom):
     """
     Bilibili User Class
     """
@@ -20,14 +20,18 @@ class BiliUser(bau.User):
             credential: logon credentials
         """
         self.uid: int = uid
-        self.credential: Credential = credential
-        super().__init__(uid, credential)
-        self.log_file: str = log
-        self.log: lw.Logger = None
-        self._set_log()
+        self.room_id: int = None
+        self.credential: Credential = credential if credential is not None else Credential()
+        bau.User.__init__(self, uid, credential)
+        self.__live_init()
+
         self.video_id: list[str] = []
 
-    def _set_log(self) -> None:
+        self.log_file: str = log
+        self.log: lw.Logger = None
+        self.__set_log()
+
+    def __set_log(self) -> None:
         """
         Set up logs.
         """
@@ -41,6 +45,14 @@ class BiliUser(bau.User):
         self.log: lw.Logger = lw.Logger()
         self.log.add_config(file_handler)
         self.log.add_config(sys_handler)
+
+    def __live_init(self) -> None:
+        """
+        Initialize live room.
+        """
+        live_info: dict = sync(self.get_live_info())
+        self.room_id = live_info['live_room']['roomid']
+        bal.LiveRoom.__init__(self, self.room_id, self.credential)
 
     async def get_upload_videos(self):
         """

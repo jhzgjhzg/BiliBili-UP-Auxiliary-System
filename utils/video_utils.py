@@ -101,7 +101,7 @@ class BiliVideo(bav.Video):
         """
         self.aid: int = aid
         self.bvid: str = bvid
-        self.credential: Credential = credential
+        self.credential: Credential = credential if credential is not None else Credential()
         super().__init__(bvid=bvid, aid=aid, credential=credential)
 
         self.p_cid: list[int] = []
@@ -132,12 +132,12 @@ class BiliVideo(bav.Video):
 
         self.log_file: str = log
         self.log: lw.Logger = None
-        self._set_log()
+        self.__set_log()
         self.log.info(f"{self.bvid} data initialization.")
-        self._id_completion()
-        self._p_video_init()
+        self.__id_completion()
+        self.__p_video_init()
 
-    def _set_log(self) -> None:
+    def __set_log(self) -> None:
         """
         Set up logs.
         """
@@ -152,7 +152,7 @@ class BiliVideo(bav.Video):
         self.log.add_config(file_handler)
         self.log.add_config(sys_handler)
 
-    def _id_completion(self) -> None:
+    def __id_completion(self) -> None:
         """
         Complete video aid and bvid.
         """
@@ -166,7 +166,7 @@ class BiliVideo(bav.Video):
             if self.aid is None:
                 self.aid = self.get_aid()
 
-    def _p_video_init(self) -> None:
+    def __p_video_init(self) -> None:
         """
         Obtain sub video information, including id and video time.
         """

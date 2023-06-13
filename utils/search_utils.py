@@ -16,11 +16,11 @@ class BiliSearch:
         self.keywords: list[str] = keywords
         self.log_file: str = log
         self.log: lw.Logger = None
-        self._set_log()
+        self.__set_log()
 
         self.video_id: list[str] = []
 
-    def _set_log(self) -> None:
+    def __set_log(self) -> None:
         """
         Set up logs.
         """
