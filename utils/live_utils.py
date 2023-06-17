@@ -2,7 +2,8 @@
 
 """
 
-# data output path template: live_output/{room_id}/{live_start_time}/file_name
+# data output path template: live_output/{room_id}/{live_start_time}/file_name: {danmu.xlsx, marked_danmu.xlsx,
+#                            robust_danmu.xlsx, gift.xlsx, guard.xlsx, sc.xlsx, view.txt}
 # live info path: live_output/{room_id}/live_info.txt
 # After testing, 95% of the time it takes to create and open all output files is less than 0.02 seconds, and all data
 # within this time period after streaming cannot be recorded.
@@ -10,6 +11,7 @@
 
 from bilibili_api import live as bal, sync, Credential
 from matplotlib import pyplot as plt
+from utils.utils import BiliLiveDanmu, BiliLiveGift, BiliLiveSc, BiliLiveGuard
 from writer import log_writer as lw
 import os
 import datetime
@@ -25,321 +27,69 @@ from numpy import typing as npt
 danmu_warning_mark: list[str] = ["@", "[", "]", "。", "?", "!", "，", ".", ","]
 
 
-class BiliLiveDanmu:
-    """
-    Bilibili live danmu class.
-    """
-
-    def __init__(self, log: str):
-        """
-        Args:
-            log: log file path
-        """
-        # The API return information of the danmu here is stored in the form of a list, so the readability of
-        # the parsing is not high, and there may be bugs in the future.
-        # But this is Bilibili's problem.
-        self.log_file: str = log
-        self.content: str = None
-        self.time: int = None
-        self.user_uid: int = None
-
-    def load_from_data(self, data: dict) -> None:
-        """
-        Load danmu information from API data.
-
-        Args:
-            data: dictionary for storing live-streaming danmu information
-        """
-        self.content: str = data['data']['info'][1]
-        self.time: int = int(data['data']['info'][0][4] / 1000)
-        self.user_uid: int = data['data']['info'][2][0]
-
-    def to_excel(self, excel_file: str, excel: DataFrame) -> None:
-        """
-        Write danmu information to excel file.
-
-        Args:
-            excel_file: excel file path
-            excel: excel file
-        """
-        line: DataFrame = pd.DataFrame({"user_uid": self.user_uid,
-                                        "content": self.content,
-                                        "time": self.time},
-                                       index=[0])
-        excel = pd.concat([excel, line], ignore_index=True, axis=0)
-        excel.to_excel(excel_file, index=False)
-
-    def load_from_excel(self, data: dict) -> None:
-        """
-        Load danmu information from excel file.
-
-        Args:
-            data: dictionary for storing live-streaming danmu information
-        """
-        self.content: str = data['content']
-        self.time: int = int(data['time'])
-        self.user_uid: int = int(data['user_uid'])
-
-
-class BiliLiveGift:
-    """
-    Bilibili live gift class.
-    """
-
-    def __init__(self, log: str):
-        """
-        Args:
-            log: log file path
-        """
-        self.log_file: str = log
-        self.gift_name: str = None
-        self.gift_id: int = None
-        self.number: int = None
-        self.price: float = None  # unit: RMB
-        self.time: int = None
-        self.user_uid: int = None
-
-    def load_from_data(self, data: dict) -> None:
-        """
-        Load gift information from API data.
-
-        Args:
-            data: dictionary for storing live-streaming gift information
-        """
-        self.gift_name: str = data['data']['data']['giftName']
-        self.gift_id: int = data['data']['data']['giftId']
-        self.number: int = data['data']['data']['num']
-        self.price: float = data['data']['data']['total_coin'] * 0.001
-
-    def to_excel(self, excel_file: str, excel: DataFrame) -> None:
-        """
-        Write gift information to excel file.
-
-        Args:
-            excel_file: excel file path
-            excel: excel file
-        """
-        line: DataFrame = pd.DataFrame({"user_uid": self.user_uid,
-                                        "gift_name": self.gift_name,
-                                        "gift_id": self.gift_id,
-                                        "number": self.number,
-                                        "total_price": self.price,
-                                        "time": self.time},
-                                       index=[0])
-        excel = pd.concat([excel, line], ignore_index=True, axis=0)
-        excel.to_excel(excel_file, index=False)
-
-    def load_from_excel(self, data: dict) -> None:
-        """
-        Load gift information from excel file.
-
-        Args:
-            data: dictionary for storing live-streaming gift information
-        """
-        self.gift_name: str = data['gift_name']
-        self.gift_id: int = int(data['gift_id'])
-        self.number: int = int(data['number'])
-        self.price: float = float(data['total_price'])
-        self.time: int = int(data['time'])
-        self.user_uid: int = int(data['user_uid'])
-
-
-class BiliLiveSc:
-    """
-    Bilibili live super chat class.
-    """
-
-    def __init__(self, log: str):
-        """
-        Args:
-            log: log file path
-        """
-        self.log_file: str = log
-        self.content: str = None
-        self.price: float = None  # unit: RMB
-        self.time: int = None
-        self.user_uid: int = None
-        self.gift_id: int = None
-
-    def load_from_data(self, data: dict) -> None:
-        """
-        Load super chat information from API data.
-
-        Args:
-            data: dictionary for storing live-streaming super chat information
-        """
-        self.content: str = data['data']['data']['message']
-        self.price: float = data['data']['data']['price']
-        self.time: int = int(data['data']['data']['start_time'])
-        self.user_uid: int = data['data']['data']['uid']
-        self.gift_id: int = data['data']['data']['gift']['gift_id']
-
-    def to_excel(self, excel_file: str, excel: DataFrame) -> None:
-        """
-        Write super chat information to excel file.
-
-        Args:
-            excel_file: excel file path
-            excel: excel file
-        """
-        line: DataFrame = pd.DataFrame({"user_uid": self.user_uid,
-                                        "content": self.content,
-                                        "price": self.price,
-                                        "time": self.time,
-                                        "gift_id": self.gift_id},
-                                       index=[0])
-        excel = pd.concat([excel, line], ignore_index=True, axis=0)
-        excel.to_excel(excel_file, index=False)
-
-    def load_from_excel(self, data: dict) -> None:
-        """
-        Load super chat information from excel file.
-
-        Args:
-            data: dictionary for storing live-streaming super chat information
-        """
-        self.content: str = data['content']
-        self.price: float = float(data['price'])
-        self.time: int = int(data['time'])
-        self.user_uid: int = int(data['user_uid'])
-        self.gift_id: int = int(data['gift_id'])
-
-
-class BiliLiveGuard:
-    """
-    Bilibili live guard class.
-    """
-
-    def __init__(self, log: str):
-        """
-        Args:
-            log: log file path
-        """
-        self.log_file: str = log
-        self.guard_level: int = None
-        self.gift_id: int = None
-        self.guard_name: str = None
-        self.time: int = None
-        self.price: float = None  # unit: RMB
-        self.user_uid: int = None
-
-    def load_from_data(self, data: dict) -> None:
-        """
-        Load guard information from API data.
-
-        Args:
-            data: dictionary for storing live-streaming guard information
-        """
-        self.guard_level: int = data['data']['data']['guard_level']
-        self.gift_id: int = data['data']['data']['gift_id']
-        self.guard_name: str = data['data']['data']['gift_name']
-        self.time: int = int(data['data']['data']['start_time'])
-        self.price: float = data['data']['data']['price'] * 0.001
-        self.user_uid: int = data['data']['data']['uid']
-
-    def to_excel(self, excel_file: str, excel: DataFrame) -> None:
-        """
-        Write guard information to excel file.
-
-        Args:
-            excel_file: excel file path
-            excel: excel file
-        """
-        line: DataFrame = pd.DataFrame({"user_uid": self.user_uid,
-                                        "guard_level": self.guard_level,
-                                        "gift_id": self.gift_id,
-                                        "guard_name": self.guard_name,
-                                        "time": self.time,
-                                        "price": self.price},
-                                       index=[0])
-        excel = pd.concat([excel, line], ignore_index=True, axis=0)
-        excel.to_excel(excel_file, index=False)
-
-    def load_from_excel(self, data: dict) -> None:
-        """
-        Load guard information from excel file.
-
-        Args:
-            data: dictionary for storing live-streaming guard information
-        """
-        self.guard_level: int = int(data['guard_level'])
-        self.gift_id: int = int(data['gift_id'])
-        self.guard_name: str = data['guard_name']
-        self.time: int = int(data['time'])
-        self.price: float = float(data['price'])
-        self.user_uid: int = int(data['user_uid'])
-
-
 class BiliLiveMonitor(bal.LiveRoom, bal.LiveDanmaku):
     """
     Bilibili live monitor class.
     """
 
-    def __init__(self, room_id: int, log: str, work_dir: str = None, max_retry: int = 10, retry_after: float = 1,
-                 credential: Credential = None) -> None:
+    def __init__(self, room_id: int, log: str, work_dir: str, max_retry: int, retry_after: float,
+                 credential: Union[Credential, None] = None) -> None:
         """
         Args:
             room_id: live room ID
             log: log file path
-            max_retry: maximum number of retry, default: 10
+            work_dir: working directory
+            max_retry: maximum number of retries, default: 10
             retry_after: retry interval after connection error, unit: seconds, default: 1
             credential: logon credentials
         """
-        self.room_id: int = room_id
-        self.credential: Credential = credential if credential is not None else Credential()
-        self.max_retry: int = max_retry
-        self.work_dir: str = work_dir
-        bal.LiveRoom.__init__(self, room_id, credential)
+        bal.LiveRoom.__init__(self, room_display_id=room_id, credential=credential)
         bal.LiveDanmaku.__init__(self, room_id, credential=credential, max_retry=max_retry, retry_after=retry_after)
+        self.room_id: int = room_id
+        self.work_dir: Union[str, None] = None
 
-        self.user_uid: int = None
-        self.user_name: str = None
-        self.short_id: int = None  # Live room short ID, may not have a short ID
-        self.is_hidden: bool = None  # Is the live room hidden
-        self.is_locked: bool = None  # Is the live room locked
-        self.is_portrait: bool = None  # Is it a vertical live room
-        self.hidden_till: int = None  # Hidden end time
-        self.lock_till: int = None  # Lock end time
-        self.encrypted: bool = None  # Is the live room encrypted
-        self.pwd_verified: bool = None  # Is the live room password verified, only meaningful when encrypted is true
-        self.live_status: int = None  # Live status. 0 for not broadcasting, 1 for live-streaming, 2 for in rotation
-        self.live_start_time: int = None  # Live start time
-        self.live_end_time: int = None  # Live end time
-        self.area_id: int = None  # Live area ID
-        self.area_name: str = None  # Live area name
-        self.parent_area_id: int = None  # Live parent area ID
-        self.parent_area_name: str = None  # Live parent area name
-        self.title: str = None  # Live title
-        self.introduction: str = None  # Live introduction
-
-        # self.danmu: list[BiliLiveDanmu] = []
-        # self.gift: list[BiliLiveGift] = []
-        # self.guard: list[BiliLiveGuard] = []
-        # self.sc: list[BiliLiveSc] = []
-        # self.view: list[int] = []
+        self.user_uid: Union[int, None] = None
+        self.user_name: Union[str, None] = None
+        self.short_id: Union[int, None] = None  # Live room short ID, may not have a short ID
+        self.is_hidden: Union[bool, None] = None  # Is the live room hidden
+        self.is_locked: Union[bool, None] = None  # Is the live room locked
+        self.is_portrait: Union[bool, None] = None  # Is it a vertical live room
+        self.hidden_till: Union[int, None] = None  # Hidden end time
+        self.lock_till: Union[int, None] = None  # Lock end time
+        self.encrypted: Union[bool, None] = None  # Is the live room encrypted
+        self.pwd_verified: Union[
+            bool, None] = None  # Is the live room password verified, only meaningful when encrypted is true
+        self.live_status: Union[
+            int, None] = None  # Live status. 0 for not broadcasting, 1 for live-streaming, 2 for in rotation
+        self.live_start_time: Union[int, None] = None  # Live start time
+        self.live_end_time: Union[int, None] = None  # Live end time
+        self.area_id: Union[int, None] = None  # Live area ID
+        self.area_name: Union[str, None] = None  # Live area name
+        self.parent_area_id: Union[int, None] = None  # Live parent area ID
+        self.parent_area_name: Union[str, None] = None  # Live parent area name
+        self.title: Union[str, None] = None  # Live title
+        self.introduction: Union[str, None] = None  # Live introduction
 
         self.mark: list[str] = ["#"]
-        self.marked_danmu: list[BiliLiveDanmu] = []
-        self.robust_danmu: list[BiliLiveDanmu] = []
 
-        self.danmu_excel: DataFrame = None
-        self.danmu_excel_file: str = None
-        self.marked_danmu_excel: DataFrame = None
-        self.marked_danmu_file: str = None
-        self.gift_excel: DataFrame = None
-        self.gift_excel_file: str = None
-        self.sc_excel: DataFrame = None
-        self.sc_excel_file: str = None
-        self.guard_excel: DataFrame = None
-        self.guard_excel_file: str = None
-        self.view_txt_file: str = None
-        self.live_info_txt_file: str = None
+        self.danmu_excel: Union[DataFrame, None] = None
+        self.danmu_excel_file: Union[str, None] = None
+        self.marked_danmu_excel: Union[DataFrame, None] = None
+        self.marked_danmu_file: Union[str, None] = None
+        self.gift_excel: Union[DataFrame, None] = None
+        self.gift_excel_file: Union[str, None] = None
+        self.sc_excel: Union[DataFrame, None] = None
+        self.sc_excel_file: Union[str, None] = None
+        self.guard_excel: Union[DataFrame, None] = None
+        self.guard_excel_file: Union[str, None] = None
+        self.view_txt_file: Union[str, None] = None
+        self.live_info_txt_file: Union[str, None] = None
 
         self.log_file: str = log
-        self.log: lw.Logger = None
+        self.log: Union[lw.Logger, None] = None
         self.__set_log()
-        self.log.info(f"{self.room_id} data initialization.")
         self.__init_live_room_info()
+        self.__load_work_dir(work_dir)
 
     def __set_log(self) -> None:
         """
@@ -360,9 +110,26 @@ class BiliLiveMonitor(bal.LiveRoom, bal.LiveDanmaku):
         """
         Initialize live room information.
         """
-        live_play_info: dict = sync(self.get_room_play_info_v2())
-        self.user_uid: int = live_play_info['uid']
-        self.short_id: int = live_play_info['short_id'] if live_play_info['short_id'] != 0 else None
+        live_play_info: dict = sync(self.get_room_info())
+        self.user_uid: int = live_play_info['room_info']['uid']
+        self.user_name: str = live_play_info['anchor_info']['base_info']['uname']
+        self.short_id: Union[int, None] = live_play_info['room_info']['short_id'] \
+            if live_play_info['room_info']['short_id'] != 0 else None
+
+    def __load_work_dir(self, work_dir: str) -> None:
+        """
+        Load the working directory.
+
+        Args:
+            work_dir: working directory
+        """
+        live_output_dir: str = os.path.join(work_dir, "live_output")
+        if not os.path.exists(live_output_dir):
+            os.mkdir(live_output_dir)
+
+        self.work_dir: str = os.path.join(live_output_dir, str(self.room_id))
+        if not os.path.exists(self.work_dir):
+            os.mkdir(self.work_dir)
 
     async def __check_live_sta(self) -> bool:
         """
@@ -371,17 +138,14 @@ class BiliLiveMonitor(bal.LiveRoom, bal.LiveDanmaku):
         Returns:
             If started, return True, else return False.
         """
-        while True:
-            live_play_info: dict = await self.get_room_play_info_v2()
-            if live_play_info:
-                break
+        live_play_info: dict = await self.get_room_play_info_v2()
         self.live_status: int = live_play_info['live_status']
         if self.live_status == 1:
             return True
         else:
             return False
 
-    async def __get_live_info(self) -> None:
+    async def get_live_info(self) -> None:
         """
         Get live information.
         """
@@ -390,15 +154,14 @@ class BiliLiveMonitor(bal.LiveRoom, bal.LiveDanmaku):
             self.is_hidden: bool = live_play_info['is_hidden']
             self.is_locked: bool = live_play_info['is_locked']
             self.is_portrait: bool = live_play_info['is_portrait']
-            self.hidden_till: int = live_play_info['hidden_till'] if live_play_info['hidden_till'] != 0 else None
-            self.lock_till: int = live_play_info['lock_till'] if live_play_info['lock_till'] != 0 else None
+            self.hidden_till: Union[int, None] = live_play_info['hidden_till'] if live_play_info['hidden_till'] != 0 else None
+            self.lock_till: Union[int, None] = live_play_info['lock_till'] if live_play_info['lock_till'] != 0 else None
             self.encrypted: bool = live_play_info['encrypted']
-            self.pwd_verified: bool = live_play_info['pwd_verified'] if self.encrypted else None
+            self.pwd_verified: Union[bool, None] = live_play_info['pwd_verified'] if self.encrypted else None
             self.live_start_time: int = live_play_info['live_time']
 
         live_info: dict = await self.get_room_info()
         if live_info:
-            self.user_name: str = live_info['anchor_info']['base_info']['uname']
             self.area_id: int = live_info['room_info']['area_id']
             self.area_name: str = live_info['room_info']['area_name']
             self.parent_area_id: int = live_info['room_info']['parent_area_id']
@@ -406,20 +169,10 @@ class BiliLiveMonitor(bal.LiveRoom, bal.LiveDanmaku):
             self.title: str = live_info['room_info']['title']
             self.introduction: str = live_info['news_info']['content']
 
-    async def __live_info_to_txt(self) -> None:
+    async def live_info_to_txt(self) -> None:
         """
         Write live information to txt.
         """
-        if not os.path.exists(self.live_info_txt_file):
-            with open(self.live_info_txt_file, "a") as f:
-                f.write(f"user_name: {self.user_name}\n")
-                f.write(f"user_uid: {self.user_uid}\n")
-                f.write(f"room_id: {self.room_id}\n")
-                if self.short_id is not None:
-                    f.write(f"short_id: {self.short_id}\n")
-                else:
-                    f.write(f"short_id: None\n")
-
         with open(self.live_info_txt_file, "a") as f:
             f.write("\n")
             f.write(f"title: {self.title}\n")
@@ -440,30 +193,13 @@ class BiliLiveMonitor(bal.LiveRoom, bal.LiveDanmaku):
 
     async def __load_output_file(self) -> None:
         """
-        Load output file.
+        Load the output file.
         Includes Excel files for storing danmu, gifts,
         guards and SCs as well as txt files for storing popularity values.
         """
-        if self.work_dir is not None:
-            if not os.path.exists(self.work_dir):
-                self.log.warning(f"The output folder {self.work_dir} was specified, but it does not exist. "
-                                 f"Use default directory!")
-                live_output_dir: str = "live_output"
-            else:
-                live_output_dir: str = os.path.join(self.work_dir, "live_output")
-        else:
-            live_output_dir: str = "live_output"
-        if not os.path.exists(live_output_dir):
-            os.mkdir(live_output_dir)
-
-        live_room_output_dir: str = os.path.join(live_output_dir, str(self.room_id))
-        if not os.path.exists(live_room_output_dir):
-            os.mkdir(live_room_output_dir)
-
         name_time: int = self.live_start_time if self.live_start_time is not None else int(time.time())
-        name_time_tuple: time.struct_time = time.localtime(name_time)
-        name_time: str = time.strftime("%Y-%m-%d_%H-%M-%S", name_time_tuple)
-        current_live_output_dir: str = os.path.join(live_room_output_dir, name_time)
+        name_time: str = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime(name_time))
+        current_live_output_dir: str = os.path.join(self.work_dir, name_time)
         if not os.path.exists(current_live_output_dir):
             os.mkdir(current_live_output_dir)
 
@@ -471,52 +207,84 @@ class BiliLiveMonitor(bal.LiveRoom, bal.LiveDanmaku):
         if not os.path.exists(self.danmu_excel_file):
             temp_excel: DataFrame = pd.DataFrame()
             temp_excel.to_excel(self.danmu_excel_file, index=False)
+        self.danmu_excel = pd.read_excel(self.danmu_excel_file)
 
         self.marked_danmu_file: str = os.path.join(current_live_output_dir, "marked_danmu.xlsx")
         if not os.path.exists(self.marked_danmu_file):
             temp_excel: DataFrame = pd.DataFrame()
             temp_excel.to_excel(self.marked_danmu_file, index=False)
+        self.marked_danmu_excel = pd.read_excel(self.marked_danmu_file)
 
         self.gift_excel_file: str = os.path.join(current_live_output_dir, "gift.xlsx")
         if not os.path.exists(self.gift_excel_file):
             temp_excel: DataFrame = pd.DataFrame()
             temp_excel.to_excel(self.gift_excel_file, index=False)
+        self.gift_excel = pd.read_excel(self.gift_excel_file)
 
         self.sc_excel_file: str = os.path.join(current_live_output_dir, "sc.xlsx")
         if not os.path.exists(self.sc_excel_file):
             temp_excel: DataFrame = pd.DataFrame()
             temp_excel.to_excel(self.sc_excel_file, index=False)
+        self.sc_excel = pd.read_excel(self.sc_excel_file)
 
         self.guard_excel_file: str = os.path.join(current_live_output_dir, "guard.xlsx")
         if not os.path.exists(self.guard_excel_file):
             temp_excel: DataFrame = pd.DataFrame()
             temp_excel.to_excel(self.guard_excel_file, index=False)
-
-        self.live_info_txt_file: str = os.path.join(live_room_output_dir, "live_info.txt")
-        self.view_txt_file: str = os.path.join(current_live_output_dir, "view.txt")
-        self.danmu_excel = pd.read_excel(self.danmu_excel_file)
-        self.marked_danmu_excel = pd.read_excel(self.marked_danmu_file)
-        self.gift_excel = pd.read_excel(self.gift_excel_file)
-        self.sc_excel = pd.read_excel(self.sc_excel_file)
         self.guard_excel = pd.read_excel(self.guard_excel_file)
 
-    async def monitor(self, save_all_danmu: bool = True, disconnect: bool = True) -> None:
+        self.live_info_txt_file: str = os.path.join(self.work_dir, "live_info.txt")
+        if not os.path.exists(self.live_info_txt_file):
+            with open(self.live_info_txt_file, "a") as f:
+                f.write(f"user_name: {self.user_name}\n")
+                f.write(f"user_uid: {self.user_uid}\n")
+                f.write(f"room_id: {self.room_id}\n")
+                if self.short_id is not None:
+                    f.write(f"short_id: {self.short_id}\n")
+                else:
+                    f.write(f"short_id: None\n")
+
+        self.view_txt_file: str = os.path.join(current_live_output_dir, "view.txt")
+        if not os.path.exists(self.view_txt_file):
+            with open(self.view_txt_file, "a") as f:
+                f.write(f"time,view\n")
+
+    async def load_danmu_mark(self) -> None:
+        """
+        Load the marked
+        """
+        danmu_mark_txt_file: str = os.path.join(self.work_dir, "danmu_mark.txt")
+        if not os.path.exists(danmu_mark_txt_file):
+            self.log.warning("The danmu mark file does not exist. Use the default mark.")
+        else:
+            self.mark: list = []
+            with open(danmu_mark_txt_file, "r") as f:
+                for elem in f.readlines():
+                    self.mark.append(elem.removesuffix("\n"))
+            for m in self.mark:
+                if m in danmu_warning_mark:
+                    self.log.warning(f"{m}: This mark is a symbol that might be used in a normal unmarked danmu and "
+                                     f"may cause confusion!")
+            self.log.info("Load the danmu mark successful.")
+
+    async def monitor(self, save_all_danmu: bool, danmu_disconnect: bool, auto_disconnect: bool) -> None:
         """
         Monitor live broadcast.
 
         Args:
             save_all_danmu: whether to save all live danmu, default is True
-            disconnect: whether to disconnect from the live broadcast room by entering "###disconnect###"
+            danmu_disconnect: whether to disconnect from the live broadcast room by entering "###disconnect###"
+            auto_disconnect: whether to disconnect from the live room automatically when the live broadcast ends
         """
-        live_stat: bool = False
+        live_start: bool = False
         live_flag: bool = True
         force_flag: bool = await self.__check_live_sta()
         if force_flag:
-            live_stat = True
+            live_start = True
             live_flag = False
-            await self.__get_live_info()
+            await self.get_live_info()
             await self.__load_output_file()
-            await self.__live_info_to_txt()
+            await self.live_info_to_txt()
 
         @self.on("DANMU_MSG")
         async def __disconnect_live_room(event: dict) -> None:
@@ -526,7 +294,7 @@ class BiliLiveMonitor(bal.LiveRoom, bal.LiveDanmaku):
             Args:
                  event: API returns data
             """
-            if disconnect:
+            if danmu_disconnect:
                 flag: str = event['data']['info'][1]
                 if flag == "###disconnect###":
                     await self.disconnect()
@@ -539,17 +307,15 @@ class BiliLiveMonitor(bal.LiveRoom, bal.LiveDanmaku):
             Args:
                 event: API returns data
             """
-            if live_stat:
+            if live_start:
                 danmu: BiliLiveDanmu = BiliLiveDanmu(log=self.log_file)
-                danmu.load_from_data(event)
-                # self.danmu.append(danmu)
+                await danmu.load_from_api(event)
                 if save_all_danmu:
-                    danmu.to_excel(self.danmu_excel_file, self.danmu_excel)
+                    await danmu.to_excel(self.danmu_excel_file, self.danmu_excel)
                     self.danmu_excel = pd.read_excel(self.danmu_excel_file)
                 if danmu.content[0] in self.mark or danmu.content[-1] in self.mark:
                     self.log.info("Get a marked danmu.")
-                    # self.marked_danmu.append(danmu)
-                    danmu.to_excel(self.marked_danmu_file, self.marked_danmu_excel)
+                    await danmu.to_excel(self.marked_danmu_file, self.marked_danmu_excel)
                     self.marked_danmu_excel = pd.read_excel(self.marked_danmu_file)
 
         @self.on("SEND_GIFT")
@@ -560,12 +326,11 @@ class BiliLiveMonitor(bal.LiveRoom, bal.LiveDanmaku):
             Args:
                 event: API returns data
             """
-            if live_stat:
+            if live_start:
                 self.log.info("Get a gift.")
                 gift: BiliLiveGift = BiliLiveGift(log=self.log_file)
-                gift.load_from_data(event)
-                # self.gift.append(gift)
-                gift.to_excel(self.gift_excel_file, self.gift_excel)
+                await gift.load_from_api(event)
+                await gift.to_excel(self.gift_excel_file, self.gift_excel)
                 self.gift_excel = pd.read_excel(self.gift_excel_file)
 
         @self.on("GUARD_BUY")
@@ -576,12 +341,11 @@ class BiliLiveMonitor(bal.LiveRoom, bal.LiveDanmaku):
             Args:
                 event: API returns data
             """
-            if live_stat:
+            if live_start:
                 self.log.info("Get a guard.")
                 guard: BiliLiveGuard = BiliLiveGuard(log=self.log_file)
-                guard.load_from_data(event)
-                # self.guard.append(guard)
-                guard.to_excel(self.guard_excel_file, self.guard_excel)
+                await guard.load_from_api(event)
+                await guard.to_excel(self.guard_excel_file, self.guard_excel)
                 self.guard_excel = pd.read_excel(self.guard_excel_file)
 
         @self.on("SUPER_CHAT_MESSAGE_JPN")
@@ -592,12 +356,11 @@ class BiliLiveMonitor(bal.LiveRoom, bal.LiveDanmaku):
             Args:
                 event: API returns data
             """
-            if live_stat:
+            if live_start:
                 self.log.info("Get a sc.")
                 sc: BiliLiveSc = BiliLiveSc(log=self.log_file)
-                sc.load_from_data(event)
-                # self.sc.append(sc)
-                sc.to_excel(self.sc_excel_file, self.sc_excel)
+                await sc.load_from_api(event)
+                await sc.to_excel(self.sc_excel_file, self.sc_excel)
                 self.sc_excel = pd.read_excel(self.sc_excel_file)
 
         @self.on("VIEW")
@@ -609,11 +372,10 @@ class BiliLiveMonitor(bal.LiveRoom, bal.LiveDanmaku):
                 event: API returns data
             """
             t: str = str(time.time())
-            if live_stat:
+            if live_start:
                 self.log.info("Popularity update.")
-                # self.view.append(int(event['data']))
                 with open(self.view_txt_file, "a") as f:
-                    f.write(str(event['data']) + "," + t)
+                    f.write(t + "," + str(event['data']))
                     f.write("\n")
 
         @self.on("LIVE")
@@ -624,13 +386,13 @@ class BiliLiveMonitor(bal.LiveRoom, bal.LiveDanmaku):
             Args:
                 event: API returns data
             """
-            nonlocal live_stat, live_flag
-            live_stat = True
+            nonlocal live_start, live_flag
+            live_start = True
             if live_flag:
                 self.live_start_time = event['data']['live_time']
                 await self.__load_output_file()
-                await self.__get_live_info()
-                await self.__live_info_to_txt()
+                await self.get_live_info()
+                await self.live_info_to_txt()
                 self.log.info("Live start.")
                 live_flag = False
 
@@ -639,29 +401,32 @@ class BiliLiveMonitor(bal.LiveRoom, bal.LiveDanmaku):
             """
             Check if the live broadcast has ended.
             """
-            self.log.warning("Live broadcast has ended.")
             self.live_end_time = time.time()
+            self.log.warning("Live broadcast has ended.")
             with open(self.live_info_txt_file, "a") as f:
                 f.write(f"live_end_time: {datetime.datetime.fromtimestamp(self.live_end_time)}\n")
+            if auto_disconnect:
+                self.log.warning("Auto disconnect.")
+                await self.disconnect()
 
         await self.connect()
 
 
-class BiliLiveProcess:
+class BiliLiveProcess(object):
     """
     Process the data of the live room.
     """
 
-    def __init__(self, log: str):
+    def __init__(self, log: str, work_dir: str):
         """
         Args:
             log: the log file path
+            work_dir: the work directory
         """
-        self.work_dir: str = None
-        self.output_dir: str = None
-        self.start: int = None
+        self.work_dir: Union[str, None] = None
+        self.output_dir: Union[str, None] = None
+        self.start_time: Union[int, None] = None
 
-        self.mark: list[str] = ["#"]
         self.danmu: list[BiliLiveDanmu] = []
         self.marked_danmu: list[BiliLiveDanmu] = []
         self.robust_danmu: list[BiliLiveDanmu] = []
@@ -672,11 +437,15 @@ class BiliLiveProcess:
         self.view: list[int] = []
         self.view_time: list[int] = []
 
-        self.log_file: str = log
-        self.log: lw.Logger = None
-        self._set_log()
+        self.complete_suggestion_txt_file: Union[str, None] = None
+        self.sparse_suggestion_txt_file: Union[str, None] = None
 
-    def _set_log(self) -> None:
+        self.log_file: str = log
+        self.log: Union[lw.Logger, None] = None
+        self.__set_log()
+        self.__load_work_dir(work_dir)
+
+    def __set_log(self) -> None:
         """
         Set up logs.
         """
@@ -691,7 +460,7 @@ class BiliLiveProcess:
         self.log.add_config(file_handler)
         self.log.add_config(sys_handler)
 
-    async def load_work_dir(self, work_dir: str) -> None:
+    async def __load_work_dir(self, work_dir: str) -> None:
         """
         Load the working directory.
 
@@ -701,7 +470,7 @@ class BiliLiveProcess:
         self.work_dir = os.path.abspath(work_dir)
         st: str = os.path.split(work_dir)[-1]
         t = time.mktime(time.strptime(st, "%Y-%m-%d_%H-%M-%S"))
-        self.start = int(t)
+        self.start_time = int(t)
         await self.__load_data()
 
     async def __load_danmu(self) -> None:
@@ -723,7 +492,7 @@ class BiliLiveProcess:
                 danmu_data_list: list[dict] = danmu_excel.to_dict(orient="records")
                 for elem in danmu_data_list:
                     danmu: BiliLiveDanmu = BiliLiveDanmu(log=self.log_file)
-                    danmu.load_from_excel(elem)
+                    await danmu.load_from_excel(elem)
                     self.danmu.append(danmu)
                 self.log.info("Load the danmu successful.")
 
@@ -738,7 +507,7 @@ class BiliLiveProcess:
                 marked_danmu_data_list: list[dict] = marked_danmu_excel.to_dict(orient="records")
                 for elem in marked_danmu_data_list:
                     danmu: BiliLiveDanmu = BiliLiveDanmu(log=self.log_file)
-                    danmu.load_from_excel(elem)
+                    await danmu.load_from_excel(elem)
                     self.marked_danmu.append(danmu)
                 self.log.info("Load the marked danmu successful.")
 
@@ -758,7 +527,7 @@ class BiliLiveProcess:
                 gift_list: [dict] = gift_excel.to_dict(orient="records")
                 for elem in gift_list:
                     gift: BiliLiveGift = BiliLiveGift(log=self.log_file)
-                    gift.load_from_excel(elem)
+                    await gift.load_from_excel(elem)
                     self.gift.append(gift)
                 self.log.info("Load the gift successful.")
 
@@ -778,7 +547,7 @@ class BiliLiveProcess:
                 sc_list: list[dict] = sc_excel.to_dict(orient="records")
                 for elem in sc_list:
                     sc: BiliLiveSc = BiliLiveSc(log=self.log_file)
-                    sc.load_from_excel(elem)
+                    await sc.load_from_excel(elem)
                     self.sc.append(sc)
             self.log.info("Load the sc successful.")
 
@@ -798,7 +567,7 @@ class BiliLiveProcess:
                 guard_list: list[dict] = guard_excel.to_dict(orient="records")
                 for elem in guard_list:
                     guard: BiliLiveGuard = BiliLiveGuard(log=self.log_file)
-                    guard.load_from_excel(elem)
+                    await guard.load_from_excel(elem)
                     self.guard.append(guard)
                 self.log.info("Load the guard successful.")
 
@@ -820,24 +589,6 @@ class BiliLiveProcess:
                             self.view_time.append(int(content[1]))
             self.log.info("Load the popularity data successful.")
 
-    async def __load_danmu_mark(self) -> None:
-        """
-        Load the danmu mark from the configuration file.
-        """
-        self.log.info("Loading the danmu marks...")
-        config_file: str = os.path.join(self.work_dir, "..", "config.txt")
-        if not os.path.exists(config_file):
-            self.log.warning("The danmu mark file does not exist. Use the default mark.")
-        else:
-            with open(config_file, "r") as f:
-                for elem in f.readlines():
-                    self.mark.append(elem.removesuffix("\n"))
-            for m in self.mark:
-                if m in danmu_warning_mark:
-                    self.log.warning(f"{m}: This mark is a symbol that might be used in a normal unmarked danmu and "
-                                     f"may cause confusion!")
-            self.log.info("Load the danmu mark successful.")
-
     async def __load_output_dir(self) -> None:
         """
         Load the output directory.
@@ -845,6 +596,16 @@ class BiliLiveProcess:
         self.output_dir = os.path.join(self.work_dir, "analysis")
         if not os.path.exists(self.output_dir):
             os.mkdir(self.output_dir)
+
+        self.complete_suggestion_txt_file: str = os.path.join(self.output_dir, "complete_suggestion.txt")
+        if not os.path.exists(self.complete_suggestion_txt_file):
+            with open(self.complete_suggestion_txt_file, "a") as f:
+                f.write("seconds from the start of the live, suggested content\n")
+
+        self.sparse_suggestion_txt_file: str = os.path.join(self.output_dir, "sparse_suggestion.txt")
+        if not os.path.exists(self.sparse_suggestion_txt_file):
+            with open(self.sparse_suggestion_txt_file, "a") as f:
+                f.write("seconds from the start of the live, suggested content\n")
 
     async def __load_data(self) -> None:
         """
@@ -854,16 +615,15 @@ class BiliLiveProcess:
         await self.__load_gift()
         await self.__load_sc()
         await self.__load_guard()
-        await self.__load_danmu_mark()
         await self.__load_view()
         await self.__load_output_dir()
 
-    async def danmu_robust_process(self, interval: float = 5) -> None:
+    async def danmu_robust_process(self, interval: float) -> None:
         """
         Selecting marking danmu with a certain frequency.
 
         Args:
-            interval: the minimum minute interval between two selected danmu, default is 5
+            interval: the minimum minute interval between two selected danmu
         """
         self.log.info(f"Selecting the marked danmu every {interval} minute...")
         if not self.marked_danmu:
@@ -880,7 +640,7 @@ class BiliLiveProcess:
 
         flag: int = self.marked_danmu[0].time
         self.robust_danmu.append(self.marked_danmu[0])
-        self.marked_danmu[0].to_excel(robust_danmu_excel_file, robust_danmu_excel)
+        await self.marked_danmu[0].to_excel(robust_danmu_excel_file, robust_danmu_excel)
         robust_danmu_excel = pd.read_excel(robust_danmu_excel_file)
         if len(self.marked_danmu) > 1:
             for danmu in self.marked_danmu[1:]:
@@ -889,54 +649,43 @@ class BiliLiveProcess:
                 else:
                     flag = danmu.time
                     self.robust_danmu.append(danmu)
-                    danmu.to_excel(robust_danmu_excel_file, robust_danmu_excel)
+                    await danmu.to_excel(robust_danmu_excel_file, robust_danmu_excel)
                     robust_danmu_excel = pd.read_excel(robust_danmu_excel_file)
         self.log.info(f"Selecting the marked danmu successful. The result is saved in {robust_danmu_excel_file}.")
 
-    async def editing_suggestions(self, mode: int) -> None:
+    async def __editing_suggestions(self) -> None:
         """
         Suggest the editing of the video, according to the danmu.
-
-        Args:
-            mode: 0 represents complete suggestions, 1 represents sparse suggestions
         """
-        if mode == 0:
-            if not self.marked_danmu:
-                self.log.warning("No useful danmu sequence found, unable to provide complete suggestions for editing!")
-            else:
-                self.log.info("Providing complete suggestions for editing...")
-                suggestion_output_file: str = os.path.join(self.output_dir, "complete_editing_suggestions.txt")
-                with open(suggestion_output_file, "a") as f:
-                    f.write("Here is an approximate timeline for the complete suggested editing of this live broadcast.\n")
-                    f.write("The format is: suggested content, seconds from the start of the live broadcast.\n")
-                for elem in self.marked_danmu:
-                    with open(suggestion_output_file, "a") as f:
-                        sug = elem.content + ", " + str(elem.time - self.start) + "\n"
-                        f.write(sug)
-                self.log.info(f"Providing complete suggestions for editing successful. The result is saved in "
-                              f"{suggestion_output_file}.")
-        elif mode == 1:
-            if not self.robust_danmu:
-                self.log.warning("No useful danmu sequence found, unable to provide sparse suggestions for editing!")
-            else:
-                self.log.info("Providing sparse suggestions for editing...")
-                suggestion_output_file: str = os.path.join(self.output_dir, "sparse_editing_suggestions.txt")
-                with open(suggestion_output_file, "a") as f:
-                    f.write("Here is an approximate timeline for the sparse suggested editing of this live broadcast.\n")
-                    f.write("The format is: suggested content, seconds from the start of the live broadcast.\n")
-                for elem in self.robust_danmu:
-                    with open(suggestion_output_file, "a") as f:
-                        sug = elem.content + ", " + str(elem.time - self.start) + "\n"
-                        f.write(sug)
-                self.log.info(f"Providing sparse suggestions for editing successful. The result is saved in "
-                              f"{suggestion_output_file}.")
+        if not self.marked_danmu:
+            self.log.warning(
+                "No useful marked danmu sequence found, unable to provide complete suggestions for editing!")
+        else:
+            self.log.info("Providing complete suggestions for editing...")
+            for elem in self.marked_danmu:
+                with open(self.complete_suggestion_txt_file, "a") as f:
+                    sug = str(elem.time - self.start_time) + ", " + elem.content + "\n"
+                    f.write(sug)
+            self.log.info(f"Providing complete suggestions for editing successful. The result is saved in "
+                          f"{self.complete_suggestion_txt_file}.")
 
-    async def __complete_danmu_frequency_analysis(self, interval: int = 30) -> None:
+        if not self.robust_danmu:
+            self.log.warning("No useful robust danmu sequence found, unable to provide sparse suggestions for editing!")
+        else:
+            self.log.info("Providing sparse suggestions for editing...")
+            for elem in self.robust_danmu:
+                with open(self.sparse_suggestion_txt_file, "a") as f:
+                    sug = str(elem.time - self.start_time) + ", " + elem.content + "\n"
+                    f.write(sug)
+            self.log.info(f"Providing sparse suggestions for editing successful. The result is saved in "
+                          f"{self.sparse_suggestion_txt_file}.")
+
+    async def __complete_danmu_frequency_analysis(self, interval: float) -> None:
         """
         Analyze the frequency of complete danmu.
 
         Args:
-            interval: the second interval for danmu frequency analysis, default is 30
+            interval: the second interval for danmu frequency analysis
         """
         self.log.info(f"Analyzing the frequency of complete danmu...")
         if interval < 30:
@@ -964,7 +713,7 @@ class BiliLiveProcess:
                 count_list.append(count)
             else:
                 count_list.append(count)
-            time_list = [time_list[i] - self.start for i in range(len(time_list))]
+            time_list = [time_list[i] - self.start_time for i in range(len(time_list))]
 
             plt.figure(figsize=(1080 / 200, 720 / 200), dpi=200)
             plt.plot(time_list, count_list)
@@ -986,12 +735,12 @@ class BiliLiveProcess:
             self.log.info(f"The analysis of danmu frequency is completed, and the original result graph is "
                           f"saved as {original_name} while the smoothing result map is saved as {smooth_name}.")
 
-    async def __marked_danmu_frequency_analysis(self, interval: int = 30) -> None:
+    async def __marked_danmu_frequency_analysis(self, interval: float) -> None:
         """
         Analyze the frequency of marked danmu.
 
         Args:
-            interval: the second interval for danmu frequency analysis, default is 30
+            interval: the second interval for danmu frequency analysis
         """
         self.log.info("Analyzing the frequency of marked danmu...")
         if interval < 30:
@@ -1019,7 +768,7 @@ class BiliLiveProcess:
                 count_mark_list.append(count)
             else:
                 count_mark_list.append(count)
-            time_list = [time_list[i] - self.start for i in range(len(time_list))]
+            time_list = [time_list[i] - self.start_time for i in range(len(time_list))]
 
             plt.figure(figsize=(1080 / 200, 720 / 200), dpi=200)
             plt.plot(time_list, count_mark_list)
@@ -1041,12 +790,12 @@ class BiliLiveProcess:
             self.log.info(f"The analysis of danmu frequency is completed, and the original result graph is "
                           f"saved as {original_name} while the smoothing result map is saved as {smooth_name}.")
 
-    async def danmu_frequency_analysis(self, interval: int = 30) -> None:
+    async def __danmu_frequency_analysis(self, interval: float) -> None:
         """
         Analyze the frequency of danmu.
 
         Args:
-            interval: the second interval for danmu frequency analysis, default is 30
+            interval: the second interval for danmu frequency analysis
         """
         await self.__complete_danmu_frequency_analysis(interval)
         await self.__marked_danmu_frequency_analysis(interval)
@@ -1088,12 +837,12 @@ class BiliLiveProcess:
             if temp:
                 self.revenue += temp
 
-    async def __revenue_stat_by_time(self, interval: int = 180) -> None:
+    async def __revenue_stat_by_time(self, interval: float) -> None:
         """
         Analyze revenue from live-streaming rooms by time.
 
         Args:
-            interval: the second interval for gift analysis, default is 180
+            interval: the minute interval for gift analysis
         """
         self.log.info("Analyzing revenue from live-streaming rooms by time...")
         await self.__merge_revenue()
@@ -1121,7 +870,7 @@ class BiliLiveProcess:
                 count_list.append(count)
             else:
                 count_list.append(count)
-            time_list = [time_list[i] - self.start for i in range(len(time_list))]
+            time_list = [time_list[i] - self.start_time for i in range(len(time_list))]
 
             plt.figure(figsize=(1080 / 200, 720 / 100), dpi=200)
             plt.plot(time_list, count_list)
@@ -1180,17 +929,46 @@ class BiliLiveProcess:
         plt.savefig(name, dpi=300)
         self.log.info(f"The analysis of revenue by price is completed, and the result graph is saved as {name}.")
 
-    async def revenue_stat(self, interval: int = 180) -> None:
+    async def __revenue_stat_by_type(self) -> None:
+        """
+        Analyze the situation of live-streaming gifts by type.
+        """
+        gift_total_price: float = 0
+        sc_total_price: float = 0
+        guard_total_price: float = 0
+        if self.gift:
+            for gift in self.gift:
+                gift_total_price += gift.price
+        if self.sc:
+            for sc in self.sc:
+                sc_total_price += sc.price
+        if self.guard:
+            for guard in self.guard:
+                guard_total_price += guard.price
+
+        price_list: list[float] = [gift_total_price, sc_total_price, guard_total_price]
+        label_list: list[str] = ["Gift", "Super Chat", "Guard"]
+        idx: npt.NDArray = np.nonzero(price_list)[0]
+        plt.pie(np.array(price_list)[idx], labels=np.array(label_list, dtype=str)[idx], autopct='%1.2f%%',
+                explode=[0.1 for _ in range(len(np.array(price_list)[idx]))], shadow=False, labeldistance=1.06)
+        plt.axis("equal")
+        plt.title("Revenue Analysis by Type")
+        name: str = os.path.join(self.output_dir, "revenue_analysis_by_type.jpg")
+        plt.savefig(name, dpi=300)
+        self.log.info(f"The analysis of revenue by type is completed, and the result graph is saved as {name}.")
+
+    async def __revenue_stat(self, interval: float) -> None:
         """
         Analyze revenue from live-streaming rooms.
 
         Args:
-            interval: the second interval for gift analysis, default is 180
+            interval: the minute interval for revenue analysis
         """
         await self.__revenue_stat_by_time(interval)
         await self._revenue_stat_by_price()
+        await self.__revenue_stat_by_type()
 
-    async def view_stat(self) -> None:
+    async def __view_stat(self) -> None:
         """
         Analyze the number of viewers in live-streaming rooms.
         """
@@ -1200,7 +978,7 @@ class BiliLiveProcess:
             self.log.error(f"Please check that {os.path.join(self.work_dir, 'view.xlsx')} "
                            f"exists and is not empty.")
         else:
-            view_time: list[int] = [self.view_time[i] - self.start for i in range(len(self.view_time))]
+            view_time: list[int] = [self.view_time[i] - self.start_time for i in range(len(self.view_time))]
             plt.figure(figsize=(1080 / 200, 720 / 100), dpi=200)
             plt.plot(view_time, self.view)
             plt.xlabel("Time")
@@ -1209,3 +987,16 @@ class BiliLiveProcess:
             name: str = os.path.join(self.output_dir, "popularity_analysis.jpg")
             plt.savefig(name)
             self.log.info(f"The analysis of popularity is completed, and the result graph is saved as {name}.")
+
+    async def analysis(self, revenue_interval: float, danmu_interval: float) -> None:
+        """
+        Analyze the live-streaming room.
+
+        Args:
+            revenue_interval: the minute interval for revenue analysis
+            danmu_interval: the second interval for danmu analysis
+        """
+        await self.__revenue_stat(revenue_interval)
+        await self.__view_stat()
+        await self.__danmu_frequency_analysis(danmu_interval)
+        await self.__editing_suggestions()

@@ -8,7 +8,7 @@ from writer import log_writer as lw
 import time
 
 
-class BiliSearch:
+class BiliSearch(object):
     """
     Bilibili Search Class
     """
@@ -44,7 +44,8 @@ class BiliSearch:
             page: int = 1
             while True:
                 self.log.info(f"Searching for {keyword} on page {page}...")
-                search_result_data: dict = await bas.search_by_type(keyword, search_type=bas.SearchObjectType.VIDEO, order_type=bas.OrderVideo.TOTALRANK, page=page)
+                search_result_data: dict = await bas.search_by_type(keyword, search_type=bas.SearchObjectType.VIDEO,
+                                                                    order_type=bas.OrderVideo.TOTALRANK, page=page)
 
                 if search_result_data:
                     if search_result_data['result']:
@@ -61,4 +62,5 @@ class BiliSearch:
                 else:
                     break
 
-            self.log.info(f"Search for {keyword} completed. A total of {len(self.video_id)} videos have been founded successfully.")
+            self.log.info(f"Search for {keyword} completed. A total of {len(self.video_id)} "
+                          f"videos have been founded successfully.")

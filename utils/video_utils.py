@@ -3,85 +3,17 @@
 """
 
 
-from writer import log_writer as lw, abnormal_monitor as am
+import numpy as np
+from utils.utils import BiliVideoReply, BiliVideoDanmu, BiliVideoTag
+from writer import log_writer as lw
 import time
 import copy
 import re
 from bilibili_api import Credential, video as bav, sync, Danmaku, comment as bac
 import pandas as pd
 from pandas import DataFrame
-import enum
 import os
-
-
-class VideoExcelFile(enum.Enum):
-    """
-
-    """
-    INFO = 1
-    REPLY = 2
-    DANMU = 3
-
-
-class BiliVideoReply:
-    """
-    Bilibili video reply class.
-    """
-
-    def __init__(self, reply_data: dict, log: str) -> None:
-        """
-        Args:
-             reply_data: dictionary for saving reply information
-             log: log file path
-        """
-        self.rpid: int = reply_data['rpid']  # Reply id
-        self.mid: int = reply_data['mid']  # Reply publisher id
-        self.sec_replies_num: int = reply_data['count']  # Number of secondary replies
-        self.replies_num: int = reply_data['rcount']  # Number of replies
-        self.content: str = reply_data['content']['message']  # Reply content
-        self.like: str = reply_data['like']
-        self.log_file: str = log
-
-
-class BiliVideoDanmu:
-    """
-    Bilibili Video Danmu Class.
-    """
-    def __init__(self, danmu_data: Danmaku, log: str) -> None:
-        """
-        Args:
-            danmu_data: danmu protobuf data
-            log: the log file
-        """
-        self.dmid: int = danmu_data.id_  # Danmu id
-        # Type of danmu. 1 2 3: Normal danmu 4: Bottom danmu 5: Top danmu 6: Reverse danmu
-        # 7: Advanced danmu 8: Code danmu 9: BAS danmu
-        self.mode: int = danmu_data.mode
-        # Danmu pool. 0: Normal pool 1: Subtitle pool 2: Special pool (code/BAS barrage)
-        self.pool: int = danmu_data.pool
-        self.content: str = danmu_data.text  # Danmu content
-        # Range: [0-10]. The higher the value, the higher the weight. Used for intelligent shielding.
-        self.weight: int = danmu_data.weight
-        self.time: int = int(danmu_data.send_time)  # Unix timestamp of danmu sending time
-        self.log_file: str = log
-
-
-class BiliVideoTag:
-    """
-    Bilibili Video Tag Class.
-    """
-
-    def __init__(self, tag_data: dict, log: str) -> None:
-        """
-        Args:
-             tag_data: dictionary for saving tag information
-             log: the log file
-        """
-        self.tag_id: int = tag_data['tag_id']  # Tag id
-        self.tag_name: str = tag_data['tag_name']
-        self.use_num: int = tag_data['count']['use']  # Number of videos with this tag added
-        self.follower_num: int = tag_data['count']['atten']  # Number of users following this tag
-        self.log_file: str = log
+from typing import Union
 
 
 class BiliVideo(bav.Video):
@@ -89,7 +21,11 @@ class BiliVideo(bav.Video):
     Bilibili Video Class.
     """
 
-    def __init__(self, log: str, aid: int = None, bvid: str = None, credential: Credential = None) -> None:
+    def __init__(self,
+                 log: str,
+                 credential: Union[Credential, None] = None,
+                 aid: Union[int, None] = None,
+                 bvid: Union[str, None] = None) -> None:
         """
         Either aid or bvid must be filled in.
 
@@ -99,42 +35,44 @@ class BiliVideo(bav.Video):
             log: the log file
             credential: logon credentials
         """
-        self.aid: int = aid
-        self.bvid: str = bvid
-        self.credential: Credential = credential if credential is not None else Credential()
         super().__init__(bvid=bvid, aid=aid, credential=credential)
-
+        self.aid: int = self.get_aid()
+        self.bvid: str = self.get_bvid()
         self.p_cid: list[int] = []
         self.p_time: list[int] = []
 
-        self.publish_time: int = None
-        self.total_time: int = None
-        self.view: int = None
-        self.like: int = None
-        self.coin: int = None
-        self.favorite: int = None
-        self.share: int = None
-        self.history_rank: int = None
-        self.reply_num: int = None
-        self.danmu_num: int = None
-        self.copyright: int = None
-        self.reprint_sign: int = None
-        self.up_uid: int = None
+        self.publish_time: Union[int, None] = None
+        self.total_time: Union[int, None] = None
+        self.view: Union[int, None] = None
+        self.like: Union[int, None] = None
+        self.coin: Union[int, None] = None
+        self.favorite: Union[int, None] = None
+        self.share: Union[int, None] = None
+        self.history_rank: Union[int, None] = None
+        self.reply_num: Union[int, None] = None
+        self.danmu_num: Union[int, None] = None
+        self.copyright: Union[int, None] = None
+        self.reprint_sign: Union[int, None] = None
+        self.up_uid: Union[int, None] = None
+        self.tag_use_mean: Union[int, None] = None
+        self.tag_use_min: Union[int, None] = None
+        self.tag_use_max: Union[int, None] = None
+        self.tag_follow_mean: Union[int, None] = None
+        self.tag_follow_min: Union[int, None] = None
+        self.tag_follow_max: Union[int, None] = None
 
         self.replies: list[BiliVideoReply] = []
         self.robust_replies: list[BiliVideoReply] = []
         self.danmu: list[BiliVideoDanmu] = []
         self.tags: list[BiliVideoTag] = []
 
-        self.info_excel: DataFrame = None
-        self.reply_excel: DataFrame = None
-        self.danmu_excel: DataFrame = None
+        self.work_dir: Union[str, None] = None
+        self.info_excel_file: Union[str, None] = None
+        self.info_excel: Union[DataFrame, None] = None
 
         self.log_file: str = log
-        self.log: lw.Logger = None
+        self.log: Union[lw.Logger, None] = None
         self.__set_log()
-        self.log.info(f"{self.bvid} data initialization.")
-        self.__id_completion()
         self.__p_video_init()
 
     def __set_log(self) -> None:
@@ -152,20 +90,6 @@ class BiliVideo(bav.Video):
         self.log.add_config(file_handler)
         self.log.add_config(sys_handler)
 
-    def __id_completion(self) -> None:
-        """
-        Complete video aid and bvid.
-        """
-        if self.aid is None and self.bvid is None:
-            self.log.error("Incomplete input parameters, either aid or bvid must be entered!")
-            raise am.ParameterInputError("Incomplete input parameters, either aid or bvid must be entered!")
-        if self.aid is not None:
-            if self.bvid is None:
-                self.bvid = self.get_bvid()
-        if self.bvid is not None:
-            if self.aid is None:
-                self.aid = self.get_aid()
-
     def __p_video_init(self) -> None:
         """
         Obtain sub video information, including id and video time.
@@ -178,12 +102,12 @@ class BiliVideo(bav.Video):
         else:
             self.log.warning("Failed to obtain sub video ID, which may affect subsequent operations!")
 
-    def video_info_statistics(self) -> None:
+    async def video_info_statistics(self) -> None:
         """
         Obtain current video data information.
         """
         self.log.info(f"Start acquiring video information for {self.bvid}...")
-        video_info: dict = sync(self.get_info())
+        video_info: dict = await self.get_info()
         if video_info:
             self.publish_time = video_info['pubdate']
             self.total_time = video_info['duration']
@@ -200,7 +124,7 @@ class BiliVideo(bav.Video):
         else:
             self.log.warning("Failed to obtain video information, which may affect subsequent operations!")
 
-        video_stst: dict = sync(self.get_stat())
+        video_stst: dict = await self.get_stat()
         if video_stst:
             self.reprint_sign = video_stst[
                 'no_reprint']  # reprint_sign: prohibition of reprinting sign, 0: none, 1: prohibition
@@ -244,146 +168,132 @@ class BiliVideo(bav.Video):
                 break
         if sec:
             self.log.info(
-                f"A total of {len(self.replies)} replies have been collected successfully. (With second level replies)")
+                f"A total of {len(self.replies)} replies have been collected successfully. "
+                f"(With second level replies)")
         else:
             self.log.info(
-                f"A total of {len(self.replies)} replies have been collected successfully. (Without second level replies)")
+                f"A total of {len(self.replies)} replies have been collected successfully. "
+                f"(Without second level replies)")
 
     async def get_danmu(self) -> None:
         """
         Obtain all current danmu in the video.
         """
         self.log.info(f"Start acquiring danmu for {self.bvid}...")
-        for p_id in self.p_cid:
-            self.log.info(f"Start acquiring danmu for sub video: {p_id}.")
-            danmu_list_info: list[Danmaku] = await self.get_danmakus(cid=p_id)
-            if danmu_list_info:
-                for danmu_info in danmu_list_info:
-                    danmu: BiliVideoDanmu = BiliVideoDanmu(danmu_info, log=self.log_file)
-                    self.danmu.append(danmu)
-            time.sleep(0.2)
-        self.log.info(f"A total of {len(self.danmu)} danmu have been collected successfully.")
+        if self.p_cid:
+            for p_id in self.p_cid:
+                self.log.info(f"Start acquiring danmu for sub video: {p_id}.")
+                danmu_list_info: list[Danmaku] = await self.get_danmakus(cid=p_id)
+                if danmu_list_info:
+                    for danmu_info in danmu_list_info:
+                        danmu: BiliVideoDanmu = BiliVideoDanmu(danmu_info, log=self.log_file)
+                        self.danmu.append(danmu)
+                time.sleep(0.2)
+            self.log.info(f"A total of {len(self.danmu)} danmu have been collected successfully.")
+        else:
+            self.log.warning("The sub video id is missing, and the danmu cannot be obtained!")
 
     async def reply_robust_process(self) -> None:
         """
         Robust processing of replies. Remove emoticon frame.
         """
-        for elem in self.replies:
-            rb_reply: BiliVideoReply = copy.deepcopy(elem)
-            rb_reply.content = re.sub(r"\[.*?]", ",", rb_reply.content)
-            self.robust_replies.append(rb_reply)
+        self.log.info(f"Start robust processing of replies for {self.bvid}...")
+        if self.replies:
+            for elem in self.replies:
+                rb_reply: BiliVideoReply = copy.deepcopy(elem)
+                rb_reply.content = re.sub(r"\[.*?]", ",", rb_reply.content)
+                self.robust_replies.append(rb_reply)
+            self.log.info(f"Robust processing of replies for {self.bvid} completed.")
+        else:
+            self.log.warning("The reply is empty, and the robust processing cannot be performed!")
 
     async def get_tag(self) -> None:
         """
         Obtain video tag information.
         """
         self.log.info(f"Start acquiring tags for {self.bvid}...")
-        for p_id in self.p_cid:
-            self.log.info(f"Start acquiring tags for sub video: {p_id}.")
-            tag_info_list: list[dict] = await self.get_tags(cid=p_id)
-            if tag_info_list:
-                for tag_info in tag_info_list:
-                    tag: BiliVideoTag = BiliVideoTag(tag_info, log=self.log_file)
-                    self.tags.append(tag)
-            time.sleep(0.2)
-        if len(self.tags) > 0:
-            self.log.info(f"A total of {len(self.tags)} tags have been collected successfully.")
+        if self.p_cid:
+            for p_id in self.p_cid:
+                self.log.info(f"Start acquiring tags for sub video: {p_id}.")
+                tag_info_list: list[dict] = await self.get_tags(cid=p_id)
+                if tag_info_list:
+                    for tag_info in tag_info_list:
+                        tag: BiliVideoTag = BiliVideoTag(tag_info, log=self.log_file)
+                        self.tags.append(tag)
+                time.sleep(0.2)
+            if len(self.tags) > 0:
+                self.log.info(f"A total of {len(self.tags)} tags have been collected successfully.")
+            else:
+                self.log.warning(f"{self.bvid} did not add a tag, which may affect subsequent operations!")
         else:
-            self.log.warning(f"{self.bvid} did not add a tag!")
+            self.log.warning("The sub video id is missing, and the tag cannot be obtained!")
 
-    def load_excel(self, excel_file: str, mode: VideoExcelFile) -> None:
+    async def tag_process(self) -> None:
         """
-        Open an Excel file.
+        Calculate the mean, maximum and minimum values of video tag popularity.
+        """
+        tag_use: list[int] = []
+        tag_follow: list[int] = []
+        if self.tags:
+            for elem in self.tags:
+                tag_use.append(elem.use_num)
+                tag_follow.append(elem.follow_num)
+            self.tag_use_mean: float = sum(tag_use) / len(tag_use)
+            self.tag_use_max: int = np.max(tag_use)
+            self.tag_use_min: int = np.min(tag_use)
+            self.tag_follow_mean: float = sum(tag_follow) / len(tag_follow)
+            self.tag_follow_max: int = np.max(tag_follow)
+            self.tag_follow_min: int = np.min(tag_follow)
+        else:
+            self.tag_follow_mean: float = -1
+            self.tag_follow_max: int = -1
+            self.tag_follow_min: int = -1
+            self.tag_use_mean: float = -1
+            self.tag_use_max: int = -1
+            self.tag_use_min: int = -1
+            self.log.warning("The tag is empty!")
+
+    async def __load_info_excel(self, excel_file: str) -> None:
+        """
+        Load the Excel file to save the video information.
 
         Args:
-            excel_file: Excel file path
-            mode: excel file type
+            excel_file: excel file path
         """
         if not os.path.exists(excel_file):
             temp_excel: DataFrame = pd.DataFrame()
             temp_excel.to_excel(excel_file, index=False)
+        self.info_excel: DataFrame = pd.read_excel(excel_file)
 
-        if mode == VideoExcelFile.INFO:
-            self.info_excel = pd.read_excel(excel_file)
-        elif mode == VideoExcelFile.REPLY:
-            self.reply_excel = pd.read_excel(excel_file)
-        elif mode == VideoExcelFile.DANMU:
-            self.danmu_excel = pd.read_excel(excel_file)
-
-    def info_to_excel(self, excel_file: str) -> None:
+    async def info_to_excel(self, excel_file: str) -> None:
         """
         Save video information to Excel file.
 
         Args:
             excel_file: excel file path
         """
-        col: list[str] = ["aid", "bvid", "up_uid", "publish_time", "total_time", "view", "like", "coin", "favorite",
-                          "share", "history_rank", "reply_num", "danmu_num", "copyright", "reprint_sign"]
-        if self.info_excel is None:
-            self.info_excel: DataFrame = pd.DataFrame(columns=col)
+        await self.__load_info_excel(excel_file)
         line: DataFrame = pd.DataFrame({"aid": self.aid,
-                                          "bvid": self.bvid,
-                                          "up_uid": self.up_uid,
-                                          "publish_time": self.publish_time,
-                                          "total_time": self.total_time,
-                                          "view": self.view,
-                                          "like": self.like,
-                                          "coin": self.coin,
-                                          "favorite": self.favorite,
-                                          "share": self.share,
-                                          "history_rank": self.history_rank,
-                                          "reply_num": self.reply_num,
-                                          "danmu_num": self.danmu_num,
-                                          "copyright": self.copyright,
-                                          "reprint_sign": self.reprint_sign},
-                                         index=[0])
+                                        "bvid": self.bvid,
+                                        "up_uid": self.up_uid,
+                                        "publish_time": self.publish_time,
+                                        "total_time": self.total_time,
+                                        "view": self.view,
+                                        "like": self.like,
+                                        "coin": self.coin,
+                                        "favorite": self.favorite,
+                                        "share": self.share,
+                                        "history_rank": self.history_rank,
+                                        "reply_num": self.reply_num,
+                                        "danmu_num": self.danmu_num,
+                                        "copyright": self.copyright,
+                                        "reprint_sign": self.reprint_sign,
+                                        "tag_use_mean": self.tag_use_mean,
+                                        "tag_use_max": self.tag_use_max,
+                                        "tag_use_min": self.tag_use_min,
+                                        "tag_follow_mean": self.tag_follow_mean,
+                                        "tag_follow_max": self.tag_follow_max,
+                                        "tag_follow_min": self.tag_follow_min},
+                                        index=[0])
         pd.concat([self.info_excel, line], axis=0, ignore_index=True).to_excel(excel_file, index=False)
         self.log.info(f"Video information has been saved to {excel_file}.")
-
-    def reply_to_excel(self, excel_file: str) -> None:
-        """
-        Save reply information to Excel file.
-
-        Args:
-            excel_file: excel file path
-        """
-        col: list[str] = ["aid", "bvid", "rpid", "user_mid", "sec_replies_num", "replies_num", "like", "content"]
-        if self.reply_excel is None:
-            self.reply_excel: DataFrame = pd.DataFrame(columns=col)
-        for elem in self.replies:
-            line: DataFrame = pd.DataFrame({"aid": self.aid,
-                                            "bvid": self.bvid,
-                                            "rpid": elem.rpid,
-                                            "user_mid": elem.mid,
-                                            "sec_replies_num": elem.sec_replies_num,
-                                            "replies_num": elem.replies_num,
-                                            "like": elem.like,
-                                            "content": elem.content},
-                                            index=[0])
-            self.reply_excel = pd.concat([self.reply_excel, line], axis=0, ignore_index=True)
-        self.reply_excel.to_excel(excel_file, index=False)
-        self.log.info(f"Reply information has been saved to {excel_file}.")
-
-    def danmu_to_excel(self, excel_file: str) -> None:
-        """
-        Save danmu information to Excel file.
-
-        Args:
-            excel_file: Excel file path
-        """
-        col: list[str] = ["aid", "bvid", "dmid", "mode", "pool", "weight", "content", "time"]
-        if self.danmu_excel is None:
-            self.danmu_excel: DataFrame = pd.DataFrame(columns=col)
-        for elem in self.danmu:
-            line: DataFrame = pd.DataFrame({"aid": self.aid,
-                                            "bvid": self.bvid,
-                                            "dmid": elem.dmid,
-                                            "mode": elem.mode,
-                                            "pool": elem.pool,
-                                            "weight": elem.weight,
-                                            "content": elem.content,
-                                            "time": elem.time},
-                                           index=[0])
-            self.danmu_excel = pd.concat([self.danmu_excel, line], axis=0, ignore_index=True)
-        self.danmu_excel.to_excel(excel_file, index=False)
-        self.log.info(f"Danmu information has been saved to {excel_file}.")
