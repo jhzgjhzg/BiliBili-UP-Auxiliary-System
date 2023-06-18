@@ -1,10 +1,16 @@
 """
+Bili-UAS.writer.log_writer
+
 Custom log output and output format.
 """
 
 
+__all__ = ['Logger', 'Handler']
+
+
 import datetime
 from writer import abnormal_monitor as am
+from typing import Union
 
 
 class Handler:
@@ -13,7 +19,7 @@ class Handler:
     """
     def __init__(self, output_mode: str) -> None:
         self.output_mode: str = output_mode
-        self.log_file: str = None
+        self.log_file: Union[str, None] = None
         self.levels: list[str] = ["INFO", "WARNING", "ERROR"]
 
     def set_level(self, *levels: str) -> None:

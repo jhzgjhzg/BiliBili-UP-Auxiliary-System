@@ -3,32 +3,30 @@
 """
 
 
-import os
+from writer import log_writer as lw
 
 
-async def save_danmu_mark(room_id: list[int],
-                          danmu_mark: list[str],
-                          work_dir: str) -> None:
+async def save_danmu_mark(danmu_mark: list[str], log_file: str) -> None:
     """
     Save danmu mark to file.
 
     Args:
-        room_id: room id list
         danmu_mark: danmu mark list
-        work_dir: work directory
+        log_file: the log file
     """
-    live_out: str = os.path.join(work_dir, "live_output")
-    if not os.path.exists(live_out):
-        os.mkdir(live_out)
+    file_handler: lw.Handler = lw.Handler("file")
+    file_handler.set_level("WARNING", "ERROR")
+    file_handler.set_file(log_file)
 
-    for r_id in room_id:
-        live_room_output: str = os.path.join(live_out, str(r_id))
-        if not os.path.exists(live_room_output):
-            os.mkdir(live_room_output)
+    sys_handler: lw.Handler = lw.Handler("sys")
+    sys_handler.set_level("INFO", "WARNING")
 
-        danmu_mark_file: str = os.path.join(live_room_output, "danmu_mark.txt")
-        with open(danmu_mark_file, "a") as f:
-            for mark in danmu_mark:
-                f.write(mark + "\n")
+    log: lw.Logger = lw.Logger()
+    log.add_config(file_handler)
+    log.add_config(sys_handler)
 
-    print("danmu mark saved successfully.")
+    danmu_mark_file: str = ".danmu_mark.txt"
+    with open(danmu_mark_file, "w") as f:
+        for mark in danmu_mark:
+            f.write(mark + "\n")
+    log.info("Danmu mark saved successfully.")

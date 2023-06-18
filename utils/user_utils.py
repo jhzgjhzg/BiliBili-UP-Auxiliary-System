@@ -1,6 +1,11 @@
 """
+Bili-UAS.utils.user_utils
 
+This module provides the BiliUser class, which is used to get user information and videos uploaded by the user.
 """
+
+
+__all__ = ["BiliUser"]
 
 
 # data output path template: user_output/{user_id}/file_name: {fans_num.txt, guard_num.txt, charge_num.txt,
@@ -10,7 +15,6 @@
 
 
 from bilibili_api import user as bau, live as bal, sync
-from bilibili_api.utils import network_httpx as baunh
 from writer import log_writer as lw
 from bilibili_api import Credential, session
 import os
@@ -258,8 +262,7 @@ class BiliUser(bau.User, bal.LiveRoom):
         Update the number of charges.
         """
         now_time: int = int(time.time())
-        charge_info: dict = await baunh.request("GET", "https://api.bilibili.com/x/ugcpay-rank/elec/month/up",
-                                                params={"up_mid": self.uid}, credential=self.credential)
+        charge_info: dict = await self.get_elec_user_monthly()
         if charge_info:
             charge_num: int = charge_info['total_count']
             with open(self.charge_num_txt_file, "a") as f:

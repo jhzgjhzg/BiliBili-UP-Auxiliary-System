@@ -1,6 +1,12 @@
 """
+Bili-UAS.utils.utils
 
+Some small classes, recording danmu, reply, and other information.
 """
+
+
+__all__ = ["BiliVideoReply", "BiliVideoDanmu", "BiliVideoTag", "BiliLiveDanmu",
+           "BiliLiveGift", "BiliLiveGuard", "BiliLiveSC"]
 
 
 import pandas as pd
@@ -189,7 +195,7 @@ class BiliLiveGift(object):
         self.user_uid: int = int(data['user_uid'])
 
 
-class BiliLiveSc(object):
+class BiliLiveSC(object):
     """
     Bilibili live super chat class.
     """

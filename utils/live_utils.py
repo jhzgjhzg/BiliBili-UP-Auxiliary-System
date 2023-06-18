@@ -1,6 +1,12 @@
 """
+Bili-UAS.utils.live_utils
 
+This module provides some classes to help you get and process live data.
 """
+
+
+__all__ = ["BiliLiveMonitor", "BiliLiveProcess"]
+
 
 # data output path template: live_output/{room_id}/{live_start_time}/file_name: {danmu.xlsx, marked_danmu.xlsx,
 #                            robust_danmu.xlsx, gift.xlsx, guard.xlsx, sc.xlsx, view.txt}
@@ -11,7 +17,7 @@
 
 from bilibili_api import live as bal, sync, Credential
 from matplotlib import pyplot as plt
-from utils.utils import BiliLiveDanmu, BiliLiveGift, BiliLiveSc, BiliLiveGuard
+from utils.utils import BiliLiveDanmu, BiliLiveGift, BiliLiveSC, BiliLiveGuard
 from writer import log_writer as lw
 import os
 import datetime
@@ -253,7 +259,7 @@ class BiliLiveMonitor(bal.LiveRoom, bal.LiveDanmaku):
         """
         Load the marked
         """
-        danmu_mark_txt_file: str = os.path.join(self.work_dir, "danmu_mark.txt")
+        danmu_mark_txt_file: str = ".danmu_mark.txt"
         if not os.path.exists(danmu_mark_txt_file):
             self.log.warning("The danmu mark file does not exist. Use the default mark.")
         else:
@@ -358,7 +364,7 @@ class BiliLiveMonitor(bal.LiveRoom, bal.LiveDanmaku):
             """
             if live_start:
                 self.log.info("Get a sc.")
-                sc: BiliLiveSc = BiliLiveSc(log=self.log_file)
+                sc: BiliLiveSC = BiliLiveSC(log=self.log_file)
                 await sc.load_from_api(event)
                 await sc.to_excel(self.sc_excel_file, self.sc_excel)
                 self.sc_excel = pd.read_excel(self.sc_excel_file)
@@ -431,9 +437,9 @@ class BiliLiveProcess(object):
         self.marked_danmu: list[BiliLiveDanmu] = []
         self.robust_danmu: list[BiliLiveDanmu] = []
         self.gift: list[BiliLiveGift] = []
-        self.sc: list[BiliLiveSc] = []
+        self.sc: list[BiliLiveSC] = []
         self.guard: list[BiliLiveGuard] = []
-        self.revenue: list[Union[BiliLiveGift, BiliLiveSc, BiliLiveGuard]] = []
+        self.revenue: list[Union[BiliLiveGift, BiliLiveSC, BiliLiveGuard]] = []
         self.view: list[int] = []
         self.view_time: list[int] = []
 
@@ -546,7 +552,7 @@ class BiliLiveProcess(object):
             else:
                 sc_list: list[dict] = sc_excel.to_dict(orient="records")
                 for elem in sc_list:
-                    sc: BiliLiveSc = BiliLiveSc(log=self.log_file)
+                    sc: BiliLiveSC = BiliLiveSC(log=self.log_file)
                     await sc.load_from_excel(elem)
                     self.sc.append(sc)
             self.log.info("Load the sc successful.")
@@ -807,7 +813,7 @@ class BiliLiveProcess(object):
         gift = self.gift.copy()
         sc = self.sc.copy()
         guard = self.guard.copy()
-        temp: list[Union[BiliLiveGift, BiliLiveSc, BiliLiveGuard]] = []
+        temp: list[Union[BiliLiveGift, BiliLiveSC, BiliLiveGuard]] = []
         if gift:
             if sc:
                 while gift and sc:

@@ -1,6 +1,11 @@
 """
+Bili-UAS.utils.video_utils
 
+This module provides the BiliVideo class, which is used to get video information, danmu, replies and tags.
 """
+
+
+__all__ = ["BiliVideo"]
 
 
 import numpy as np
@@ -262,7 +267,7 @@ class BiliVideo(bav.Video):
         """
         if not os.path.exists(excel_file):
             temp_excel: DataFrame = pd.DataFrame()
-            temp_excel.to_excel(excel_file, index=False)
+            temp_excel.to_excel(excel_file)
         self.info_excel: DataFrame = pd.read_excel(excel_file)
 
     async def info_to_excel(self, excel_file: str) -> None:
