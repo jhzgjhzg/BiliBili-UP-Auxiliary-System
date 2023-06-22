@@ -5,7 +5,7 @@ This module provides the function to obtain video data and generate word cloud i
 """
 
 
-__all__ = ['word_cloud']
+__all__ = ["word_cloud", "WordCloudContent"]
 
 
 from typing import Union
@@ -16,26 +16,37 @@ from utils import video_utils as vu
 from numpy import typing as npt
 from bilibili_api import Credential
 from writer import log_writer as lw
+import enum
+import os
 
 
-async def word_cloud(video_id: list[Union[str, int]],
+class WordCloudContent(enum.Enum):
+    """
+    Word Cloud Content Enumeration Class
+    """
+    REPLY = 1
+    DANMU = 2
+    BOTH = 3
+
+
+async def word_cloud(video_id: Union[str, int],
                      credential: Union[Credential, None],
-                     save_path: str,
-                     mode: int,
+                     mode: WordCloudContent,
                      sec: bool,
                      mask: npt.NDArray,
-                     log_file: str) -> None:
+                     log_file: str,
+                     work_dir: str) -> None:
     """
     Obtain word cloud images of video replies or danmu.
 
     Args:
-        save_path: word cloud saving path
+        video_id: video's aid or bvid
+        credential: logon credentials
         mode: 0 represents only processing comments, 1 represents only processing danmu, and 2 represents both processing
         sec: whether to process secondary replies
         mask: word cloud mask, filling the white pixel with word clouds
         log_file: the log file
-        video_id: video's aid or bvid
-        credential: logon credentials
+        work_dir: working directory
     """
     file_handler: lw.Handler = lw.Handler("file")
     file_handler.set_level("WARNING", "ERROR")
@@ -48,24 +59,21 @@ async def word_cloud(video_id: list[Union[str, int]],
     log.add_config(file_handler)
     log.add_config(sys_handler)
 
-    log.info("Loading video data...")
-    video_list: list[vu.BiliVideo] = []
-    for v_id in video_id:
-        if isinstance(v_id, int):
-            bili_video = vu.BiliVideo(log=log_file, aid=v_id, credential=credential)
-        else:
-            bili_video = vu.BiliVideo(log=log_file, bvid=v_id, credential=credential)
-        video_list.append(bili_video)
+    if isinstance(video_id, int):
+        video = vu.BiliVideo(log=log_file, aid=video_id, credential=credential, work_dir=work_dir)
+    else:
+        video = vu.BiliVideo(log=log_file, bvid=video_id, credential=credential, work_dir=work_dir)
 
     log.info("Starting to generate word cloud image...")
-    if mode == 0:
+    if mode == WordCloudContent.REPLY:
+        save_path: str = os.path.join(video.work_dir, "reply_word_cloud.jpg")
+
         reply_content: str = ""
-        for v in video_list:
-            await v.get_replies(sec=sec)
-            await v.reply_robust_process()
-            for r in v.robust_replies:
-                reply_content += r.content
-                reply_content += "。"
+        await video.get_replies(sec=sec)
+        await video.reply_robust_process()
+        for elem in video.robust_replies:
+            reply_content += elem.content
+            reply_content += "。"
 
         words: list[str] = jieba.lcut(reply_content)
         word_freq = pd.Series(words).value_counts()
@@ -74,13 +82,14 @@ async def word_cloud(video_id: list[Union[str, int]],
         image = wc.to_image()
         image.save(save_path, quality=90)
 
-    elif mode == 1:
+    elif mode == WordCloudContent.DANMU:
+        save_path: str = os.path.join(video.work_dir, "danmu_word_cloud.jpg")
+
         danmu_content: str = ""
-        for v in video_list:
-            await v.get_danmu()
-            for r in v.danmu:
-                danmu_content += r.content
-                danmu_content += "。"
+        await video.get_danmu()
+        for elem in video.danmu:
+            danmu_content += elem.content
+            danmu_content += "。"
 
         words: list[str] = jieba.lcut(danmu_content)
         word_freq = pd.Series(words).value_counts()
@@ -90,17 +99,18 @@ async def word_cloud(video_id: list[Union[str, int]],
         image.save(save_path, quality=90)
 
     else:
+        save_path: str = os.path.join(video.work_dir, "reply_and_danmu_word_cloud.jpg")
+
         content: str = ""
-        for v in video_list:
-            await v.get_replies(sec=sec)
-            await v.reply_robust_process()
-            await v.get_danmu()
-            for r in v.robust_replies:
-                content += r.content
-                content += "。"
-            for r in v.danmu:
-                content += r.content
-                content += "。"
+        await video.get_replies(sec=sec)
+        await video.reply_robust_process()
+        await video.get_danmu()
+        for elem in video.robust_replies:
+            content += elem.content
+            content += "。"
+        for elem in video.danmu:
+            content += elem.content
+            content += "。"
 
         words: list[str] = jieba.lcut(content)
         word_freq = pd.Series(words).value_counts()

@@ -130,9 +130,6 @@ class BiliLiveMonitor(bal.LiveRoom, bal.LiveDanmaku):
             work_dir: working directory
         """
         live_output_dir: str = os.path.join(work_dir, "live_output")
-        if not os.path.exists(live_output_dir):
-            os.mkdir(live_output_dir)
-
         self.work_dir: str = os.path.join(live_output_dir, str(self.room_id))
         if not os.path.exists(self.work_dir):
             os.mkdir(self.work_dir)

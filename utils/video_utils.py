@@ -5,20 +5,81 @@ This module provides the BiliVideo class, which is used to get video information
 """
 
 
-__all__ = ["BiliVideo"]
+__all__ = ["BiliVideo", "VideoDownloadMode"]
 
 
 import numpy as np
 from utils.utils import BiliVideoReply, BiliVideoDanmu, BiliVideoTag
-from writer import log_writer as lw
+from writer import log_writer as lw, abnormal_monitor as am
 import time
 import copy
 import re
-from bilibili_api import Credential, video as bav, sync, Danmaku, comment as bac
+from bilibili_api import Credential, video as bav, sync, Danmaku, comment as bac, HEADERS
 import pandas as pd
 from pandas import DataFrame
 import os
 from typing import Union
+import httpx
+import enum
+
+
+async def _download_video_from_url(video_url: str,
+                                   output_file: str,
+                                   video_pid: int,
+                                   log: lw.Logger,
+                                   prompt_prefix: str) -> None:
+    """
+    Download video through url.
+
+    Args:
+        video_url: download url for video
+        output_file: the path to save the video
+        video_pid: pid of video
+        log: the log class
+    """
+    log.info(f"{video_pid} {prompt_prefix} downloading...")
+    async with httpx.AsyncClient(headers=HEADERS) as sess:
+        resp = await sess.get(video_url)
+        length = resp.headers.get('content-length')
+
+        with open(output_file, 'wb') as f:
+            process = 0
+            for chunk in resp.iter_bytes(1024):
+                if not chunk:
+                    break
+                process += len(chunk)
+                log.info(f"{video_pid} {prompt_prefix} downloading... {process} / {length}")
+                f.write(chunk)
+
+    log.info(f"{video_pid} {prompt_prefix} download successfully.")
+
+
+async def _load_ffmpeg_path_from_txt(log: lw.Logger) -> str:
+    """
+    Load the ffmpeg path.
+
+    Args:
+        log: the log class
+
+    Returns:
+        the path of ffmpeg
+    """
+    ffmpeg_file: str = ".ffmpeg.txt"
+    if not os.path.exists(ffmpeg_file):
+        raise am.FileMissError("No file found to record ffmpeg path, please specify the ffmpeg path.")
+    else:
+        with open(ffmpeg_file, "r") as f:
+            ffmpeg: str = f.readline().removesuffix("\n")
+        log.info("Historical ffmpeg path found, using historical ffmpeg path.")
+        return ffmpeg
+
+
+class VideoDownloadMode(enum.Enum):
+    """
+    Video Download Type Enumeration Class
+    """
+    VIDEO = 1
+    AUDIO = 2
 
 
 class BiliVideo(bav.Video):
@@ -28,6 +89,7 @@ class BiliVideo(bav.Video):
 
     def __init__(self,
                  log: str,
+                 work_dir: str,
                  credential: Union[Credential, None] = None,
                  aid: Union[int, None] = None,
                  bvid: Union[str, None] = None) -> None:
@@ -38,6 +100,7 @@ class BiliVideo(bav.Video):
             aid: video aid
             bvid: video bvid
             log: the log file
+            work_dir: working directory
             credential: logon credentials
         """
         super().__init__(bvid=bvid, aid=aid, credential=credential)
@@ -79,6 +142,7 @@ class BiliVideo(bav.Video):
         self.log: Union[lw.Logger, None] = None
         self.__set_log()
         self.__p_video_init()
+        self.__load_work_dir(work_dir)
 
     def __set_log(self) -> None:
         """
@@ -106,6 +170,18 @@ class BiliVideo(bav.Video):
                 self.p_time.append(page['duration'])
         else:
             self.log.warning("Failed to obtain sub video ID, which may affect subsequent operations!")
+
+    def __load_work_dir(self, work_dir: str) -> None:
+        """
+        Load the working directory.
+
+        Args:
+            work_dir: working directory
+        """
+        video_output_dir: str = os.path.join(work_dir, "video_output")
+        self.work_dir: str = os.path.join(video_output_dir, self.bvid)
+        if not os.path.exists(self.work_dir):
+            os.mkdir(self.work_dir)
 
     async def video_info_statistics(self) -> None:
         """
@@ -302,3 +378,70 @@ class BiliVideo(bav.Video):
                                         index=[0])
         pd.concat([self.info_excel, line], axis=0, ignore_index=True).to_excel(excel_file, index=False)
         self.log.info(f"Video information has been saved to {excel_file}.")
+
+    async def download(self, mode: VideoDownloadMode) -> None:
+        """
+        Download all videos or audio.
+
+        Args:
+            mode: 0 for downloading videos, 1 for downloading audio.
+        """
+        if self.p_cid:
+            ffmpeg_path = await _load_ffmpeg_path_from_txt(self.log)
+            for pid in self.p_cid:
+                p_url_info: dict = await self.get_download_url(cid=pid)
+                detector = bav.VideoDownloadURLDataDetecter(data=p_url_info)
+                streams = detector.detect_best_streams()
+
+                if detector.check_flv_stream():
+                    if mode == VideoDownloadMode.VIDEO:
+                        temp_flv: str = os.path.join(self.work_dir, f"{pid}_flv_temp.flv")
+                        mp4_video_out: str = os.path.join(self.work_dir, f"{pid}.mp4")
+
+                        await _download_video_from_url(streams[0].url, temp_flv, pid, self.log, "flv video streaming")
+
+                        self.log.info("Converting video format...")
+                        os.system(f"{ffmpeg_path} -i {temp_flv} {mp4_video_out}")
+
+                        os.remove(temp_flv)
+                        self.log.info(f"{pid} video download successfully.")
+
+                    elif mode == VideoDownloadMode.AUDIO:
+                        temp_flv: str = os.path.join(self.work_dir, f"{pid}_flv_temp.flv")
+                        mp3_audio_out: str = os.path.join(self.work_dir, f"{pid}.mp3")
+
+                        await _download_video_from_url(streams[0].url, temp_flv, pid, self.log, "flv video streaming")
+
+                        self.log.info("Converting audio format...")
+                        os.system(f"{ffmpeg_path} -i {temp_flv} -vn -acodec copy {mp3_audio_out}")
+
+                        os.remove(temp_flv)
+                        self.log.info(f"{pid} audio download successfully.")
+                else:
+                    if mode == VideoDownloadMode.VIDEO:
+                        temp_m4s_video: str = os.path.join(self.work_dir, f"{pid}_video_mp4_temp.m4s")
+                        temp_m4s_audio: str = os.path.join(self.work_dir, f"{pid}_audio_mp4_temp.m4s")
+                        mp4_video_out: str = os.path.join(self.work_dir, f"{pid}.mp4")
+
+                        await _download_video_from_url(streams[0].url, temp_m4s_video, pid, self.log, "video streaming")
+                        await _download_video_from_url(streams[1].url, temp_m4s_audio, pid, self.log, "audio streaming")
+
+                        self.log.info("Converting video format...")
+                        os.system(f"{ffmpeg_path} -i {temp_m4s_video} -i {temp_m4s_audio} "
+                                  f"-vcodec copy -acodec copy {mp4_video_out}")
+
+                        os.remove(temp_m4s_video)
+                        os.remove(temp_m4s_audio)
+                        self.log.info(f"{pid} video download successfully.")
+
+                    elif mode == VideoDownloadMode.AUDIO:
+                        temp_m4s_audio: str = os.path.join(self.work_dir, f"{pid}_audio_mp4_temp.m4s")
+                        mp3_audio_out: str = os.path.join(self.work_dir, f"{pid}.mp3")
+
+                        await _download_video_from_url(streams[1].url, temp_m4s_audio, pid, self.log, "audio streaming")
+
+                        self.log.info("Converting audio format...")
+                        os.system(f"{ffmpeg_path} -i {temp_m4s_audio} -acodec copy {mp3_audio_out}")
+
+                        os.remove(temp_m4s_audio)
+                        self.log.info(f"{pid} audio download successfully.")
