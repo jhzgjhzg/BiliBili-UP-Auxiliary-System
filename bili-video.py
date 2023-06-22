@@ -5,7 +5,7 @@ This module provides a command line interface for downloading videos, audio or g
 """
 
 
-__all__ = ["main", "cli"]
+__all__ = ["sync_main", "tyro_cli"]
 
 
 import matplotlib.pyplot as plt
@@ -19,12 +19,12 @@ import os
 from typing import Literal, Union
 
 
-def main(video_id: Union[str, int],
-         process: Literal["wordcloud", "download"] = "wordcloud",
-         dmode: Literal[1, 2] = 1,
-         wmode: Literal[1, 2, 3] = 1,
-         sec: bool = True,
-         mask: Union[str, None] = None) -> None:
+def sync_main(video_id: Union[str, int],
+              process: Literal["wordcloud", "download"] = "wordcloud",
+              dmode: Literal[1, 2] = 1,
+              wmode: Literal[1, 2, 3] = 1,
+              sec: bool = True,
+              mask: Union[str, None] = None) -> None:
     """
     Download videos, audio or generate word image.
 
@@ -67,12 +67,12 @@ def main(video_id: Union[str, int],
         sync(video.download(dm))
 
 
-def cli() -> None:
+def tyro_cli() -> None:
     """
     Command line interface
     """
-    tyro.cli(main)
+    tyro.cli(sync_main)
 
 
 if __name__ == "__main__":
-    cli()
+    tyro_cli()

@@ -45,8 +45,8 @@ class BiliLiveMonitor(bal.LiveRoom, bal.LiveDanmaku):
             room_id: live room ID
             log: log file path
             work_dir: working directory
-            max_retry: maximum number of retries, default: 10
-            retry_after: retry interval after connection error, unit: seconds, default: 1
+            max_retry: maximum number of retries
+            retry_after: retry interval after connection error, unit: second
             credential: logon credentials
         """
         bal.LiveRoom.__init__(self, room_display_id=room_id, credential=credential)

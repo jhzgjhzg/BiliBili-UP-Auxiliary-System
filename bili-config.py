@@ -5,7 +5,7 @@ This module provides a command line interface for setting work paths and danmu m
 """
 
 
-__all__ = ["main", "cli"]
+__all__ = ["sync_main", "tyro_cli"]
 
 
 from scripts import config as sc
@@ -16,7 +16,7 @@ from bilibili_api import sync
 from writer import log_writer as lw
 
 
-def main(workdir: str, ffmpeg: Union[str, None] = None, mark: Union[str, None] = None) -> None:
+def sync_main(workdir: str, ffmpeg: Union[str, None] = None, mark: Union[str, None] = None) -> None:
     """
     Set working path and danmu mark.
 
@@ -56,12 +56,12 @@ def main(workdir: str, ffmpeg: Union[str, None] = None, mark: Union[str, None] =
         log.warning("No danmu mark specified.")
 
 
-def cli() -> None:
+def tyro_cli() -> None:
     """
     Command line interface
     """
-    tyro.cli(main)
+    tyro.cli(sync_main)
 
 
 if __name__ == "__main__":
-    cli()
+    tyro_cli()

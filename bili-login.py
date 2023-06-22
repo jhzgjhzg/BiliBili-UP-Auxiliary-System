@@ -5,7 +5,7 @@ This module provides a command line interface for logining to bilibili.
 """
 
 
-__all__ = ["main", "cli"]
+__all__ = ["sync_main", "tyro_cli"]
 
 
 from scripts import log_in as sli, config as sc
@@ -16,12 +16,12 @@ import tyro
 from writer import log_writer as lw, abnormal_monitor as am
 
 
-def main(mode: Literal[1, 2, 3, 4] = 1,
-         sessdata: Union[str, None] = None,
-         bili_jct: Union[str, None] = None,
-         buvid3: Union[str, None] = None,
-         dedeuserid: Union[str, None] = None,
-         ac_time_value: Union[str, None] = None) -> None:
+def sync_main(mode: Literal[1, 2, 3, 4] = 1,
+              sessdata: Union[str, None] = None,
+              bili_jct: Union[str, None] = None,
+              buvid3: Union[str, None] = None,
+              dedeuserid: Union[str, None] = None,
+              ac_time_value: Union[str, None] = None) -> None:
     """
     Login to Bilibili.
 
@@ -73,12 +73,12 @@ def main(mode: Literal[1, 2, 3, 4] = 1,
         log.error("Login failed, please try logging in again! (priority is to scan QR code or specify parameters)")
 
 
-def cli() -> None:
+def tyro_cli() -> None:
     """
     Command line interface
     """
-    tyro.cli(main)
+    tyro.cli(sync_main)
 
 
 if __name__ == "__main__":
-    cli()
+    tyro_cli()
