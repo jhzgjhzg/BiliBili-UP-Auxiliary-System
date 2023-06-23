@@ -157,7 +157,8 @@ class BiliLiveMonitor(bal.LiveRoom, bal.LiveDanmaku):
             self.is_hidden: bool = live_play_info['is_hidden']
             self.is_locked: bool = live_play_info['is_locked']
             self.is_portrait: bool = live_play_info['is_portrait']
-            self.hidden_till: Union[int, None] = live_play_info['hidden_till'] if live_play_info['hidden_till'] != 0 else None
+            self.hidden_till: Union[int, None] = live_play_info['hidden_till'] if live_play_info[
+                                                                                      'hidden_till'] != 0 else None
             self.lock_till: Union[int, None] = live_play_info['lock_till'] if live_play_info['lock_till'] != 0 else None
             self.encrypted: bool = live_play_info['encrypted']
             self.pwd_verified: Union[bool, None] = live_play_info['pwd_verified'] if self.encrypted else None
@@ -374,7 +375,7 @@ class BiliLiveMonitor(bal.LiveRoom, bal.LiveDanmaku):
             Args:
                 event: API returns data
             """
-            t: str = str(time.time())
+            t: str = str(int(time.time()))
             if live_start:
                 self.log.info("Popularity update.")
                 with open(self.view_txt_file, "a") as f:
@@ -446,7 +447,7 @@ class BiliLiveProcess(object):
         self.log_file: str = log
         self.log: Union[lw.Logger, None] = None
         self.__set_log()
-        self.__load_work_dir(work_dir)
+        sync(self.__load_work_dir(work_dir))
 
     def __set_log(self) -> None:
         """
@@ -529,6 +530,8 @@ class BiliLiveProcess(object):
             else:
                 gift_list: [dict] = gift_excel.to_dict(orient="records")
                 for elem in gift_list:
+                    if elem["gift_id"] == 31531:
+                        continue
                     gift: BiliLiveGift = BiliLiveGift(log=self.log_file)
                     await gift.load_from_excel(elem)
                     self.gift.append(gift)
@@ -552,7 +555,7 @@ class BiliLiveProcess(object):
                     sc: BiliLiveSC = BiliLiveSC(log=self.log_file)
                     await sc.load_from_excel(elem)
                     self.sc.append(sc)
-            self.log.info("Load the sc successful.")
+                self.log.info("Load the sc successful.")
 
     async def __load_guard(self) -> None:
         """
@@ -726,17 +729,27 @@ class BiliLiveProcess(object):
             original_name: str = os.path.join(self.output_dir, "complete_danmu_frequency_analysis_original.jpg")
             plt.savefig(original_name)
 
-            x_new = np.linspace(time_list[0], time_list[-1], 500)
-            y_new = spi.make_interp_spline(time_list, count_list)(x_new)
-            plt.figure(figsize=(1080 / 200, 720 / 200), dpi=200)
-            plt.plot(x_new, y_new)
-            plt.xlabel("Time")
-            plt.ylabel("Count")
-            plt.title("Complete Danmu Frequency Analysis (Smooth)")
-            smooth_name: str = os.path.join(self.output_dir, "complete_danmu_frequency_analysis_smooth.jpg")
-            plt.savefig(smooth_name)
-            self.log.info(f"The analysis of danmu frequency is completed, and the original result graph is "
-                          f"saved as {original_name} while the smoothing result map is saved as {smooth_name}.")
+            if len(time_list) > 3:
+                x_new = np.linspace(time_list[0], time_list[-1], 500)
+                y_new = spi.make_interp_spline(time_list, count_list)(x_new)
+                plt.figure(figsize=(1080 / 200, 720 / 200), dpi=200)
+                plt.plot(x_new, y_new)
+                plt.xlabel("Time")
+                plt.ylabel("Count")
+                plt.title("Complete Danmu Frequency Analysis (Smooth)")
+                smooth_name: Union[str, None] = os.path.join(self.output_dir,
+                                                             "complete_danmu_frequency_analysis_smooth.jpg")
+                plt.savefig(smooth_name)
+            else:
+                self.log.warning("There is too little data to smooth out the complete danmu frequency analysis!")
+                smooth_name = None
+
+            if smooth_name is not None:
+                self.log.info(f"The analysis of complete danmu frequency is completed, and the original result graph is "
+                              f"saved as {original_name} while the smoothing result map is saved as {smooth_name}.")
+            else:
+                self.log.info(f"The analysis of complete danmu frequency is completed, and the original result graph is "
+                              f"saved as {original_name}.")
 
     async def __marked_danmu_frequency_analysis(self, interval: float) -> None:
         """
@@ -781,17 +794,27 @@ class BiliLiveProcess(object):
             original_name: str = os.path.join(self.output_dir, "marked_danmu_frequency_analysis_original.jpg")
             plt.savefig(original_name)
 
-            x_new = np.linspace(time_list[0], time_list[-1], 500)
-            y_new = spi.make_interp_spline(time_list, count_mark_list)(x_new)
-            plt.figure(figsize=(1080 / 200, 720 / 200), dpi=200)
-            plt.plot(x_new, y_new)
-            plt.xlabel("Time")
-            plt.ylabel("Count")
-            plt.title("Marked Danmu Frequency Analysis (Smooth)")
-            smooth_name: str = os.path.join(self.output_dir, "marked_danmu_frequency_analysis_smooth.jpg")
-            plt.savefig(smooth_name)
-            self.log.info(f"The analysis of danmu frequency is completed, and the original result graph is "
-                          f"saved as {original_name} while the smoothing result map is saved as {smooth_name}.")
+            if len(time_list) > 3:
+                x_new = np.linspace(time_list[0], time_list[-1], 500)
+                y_new = spi.make_interp_spline(time_list, count_mark_list)(x_new)
+                plt.figure(figsize=(1080 / 200, 720 / 200), dpi=200)
+                plt.plot(x_new, y_new)
+                plt.xlabel("Time")
+                plt.ylabel("Count")
+                plt.title("Marked Danmu Frequency Analysis (Smooth)")
+                smooth_name: Union[str, None] = os.path.join(self.output_dir,
+                                                             "marked_danmu_frequency_analysis_smooth.jpg")
+                plt.savefig(smooth_name)
+            else:
+                self.log.warning("There is too little data to smooth out the marbled danmu frequency analysis!")
+                smooth_name = None
+
+            if smooth_name is not None:
+                self.log.info(f"The analysis of marked danmu frequency is completed, and the original result graph is "
+                              f"saved as {original_name} while the smoothing result map is saved as {smooth_name}.")
+            else:
+                self.log.info(f"The analysis of marked danmu frequency is completed, and the original result graph is "
+                              f"saved as {original_name}.")
 
     async def __danmu_frequency_analysis(self, interval: float) -> None:
         """
@@ -851,7 +874,7 @@ class BiliLiveProcess(object):
         await self.__merge_revenue()
         if not self.revenue:
             self.log.warning("There is no revenue data!")
-            self.log.error(f"Please check that {os.path.join(self.work_dir, 'gift.xlsx')} "
+            self.log.error(f"Please check that {os.path.join(self.work_dir, 'gift.xlsx')}"
                            f", {os.path.join(self.work_dir, 'sc.xlsx')} "
                            f"and {os.path.join(self.work_dir, 'guard.xlsx')} "
                            f"exist and are not empty.")
@@ -978,7 +1001,7 @@ class BiliLiveProcess(object):
         self.log.info("Analyzing the popularity of the live broadcast room...")
         if not self.view:
             self.log.warning("There is no popularity data!")
-            self.log.error(f"Please check that {os.path.join(self.work_dir, 'view.xlsx')} "
+            self.log.error(f"Please check that {os.path.join(self.work_dir, 'view.txt')} "
                            f"exists and is not empty.")
         else:
             view_time: list[int] = [self.view_time[i] - self.start_time for i in range(len(self.view_time))]

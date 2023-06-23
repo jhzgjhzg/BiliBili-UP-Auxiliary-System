@@ -81,7 +81,7 @@ class BiliUser(bau.User, bal.LiveRoom):
         self.address_unreceived_txt_file: Union[str, None] = None
 
         self.__load_work_dir(work_dir)
-        self.__load_output_file()
+        sync(self.__load_output_file())
 
     def __set_log(self) -> None:
         """
