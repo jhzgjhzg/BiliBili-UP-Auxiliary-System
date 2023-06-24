@@ -591,8 +591,8 @@ class BiliLiveProcess(object):
                     content: list[str] = elem.removesuffix("\n").split(",")
                     if len(content) == 2:
                         if content[0].isdigit() and content[1].isdigit():
-                            self.view.append(int(content[0]))
-                            self.view_time.append(int(content[1]))
+                            self.view.append(int(content[1]))
+                            self.view_time.append(int(content[0]))
             self.log.info("Load the popularity data successful.")
 
     async def __load_output_dir(self) -> None:
@@ -732,7 +732,7 @@ class BiliLiveProcess(object):
             if len(time_list) > 3:
                 x_new = np.linspace(time_list[0], time_list[-1], 500)
                 y_new = spi.make_interp_spline(time_list, count_list)(x_new)
-                plt.figure(figsize=(1080 / 200, 720 / 200), dpi=200)
+                plt.figure(figsize=(2160 / 200, 1440 / 200), dpi=200)
                 plt.plot(x_new, y_new)
                 plt.xlabel("Time")
                 plt.ylabel("Count")
@@ -786,7 +786,7 @@ class BiliLiveProcess(object):
                 count_mark_list.append(count)
             time_list = [time_list[i] - self.start_time for i in range(len(time_list))]
 
-            plt.figure(figsize=(1080 / 200, 720 / 200), dpi=200)
+            plt.figure(figsize=(2160 / 200, 1440 / 200), dpi=200)
             plt.plot(time_list, count_mark_list)
             plt.xlabel("Time")
             plt.ylabel("Count")
@@ -797,7 +797,7 @@ class BiliLiveProcess(object):
             if len(time_list) > 3:
                 x_new = np.linspace(time_list[0], time_list[-1], 500)
                 y_new = spi.make_interp_spline(time_list, count_mark_list)(x_new)
-                plt.figure(figsize=(1080 / 200, 720 / 200), dpi=200)
+                plt.figure(figsize=(2160 / 200, 1440 / 200), dpi=200)
                 plt.plot(x_new, y_new)
                 plt.xlabel("Time")
                 plt.ylabel("Count")
@@ -898,7 +898,7 @@ class BiliLiveProcess(object):
                 count_list.append(count)
             time_list = [time_list[i] - self.start_time for i in range(len(time_list))]
 
-            plt.figure(figsize=(1080 / 200, 720 / 100), dpi=200)
+            plt.figure(figsize=(2160 / 200, 1440 / 200), dpi=200)
             plt.plot(time_list, count_list)
             plt.xlabel("Time")
             plt.ylabel("Count")
@@ -1005,7 +1005,7 @@ class BiliLiveProcess(object):
                            f"exists and is not empty.")
         else:
             view_time: list[int] = [self.view_time[i] - self.start_time for i in range(len(self.view_time))]
-            plt.figure(figsize=(1080 / 200, 720 / 100), dpi=200)
+            plt.figure(figsize=(2160 / 200, 1440 / 200), dpi=200)
             plt.plot(view_time, self.view)
             plt.xlabel("Time")
             plt.ylabel("Popularity")
