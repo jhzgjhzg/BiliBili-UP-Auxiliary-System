@@ -5,6 +5,9 @@ This module provides the function to log in to Bilibili, save and read credentia
 """
 
 
+from __future__ import annotations
+
+
 __all__ = ['load_credential_from_json', "save_credential_to_json", "log_in_by_QR_code", "log_in_by_password",
            "log_in_by_verification_code", "refresh_credential", "save_credential_by_parm_to_json", "LoginMode"]
 
@@ -18,6 +21,7 @@ import json
 import os
 from writer import log_writer as lw
 import enum
+from typing import Union
 
 
 class LoginMode(enum.Enum):
@@ -30,7 +34,7 @@ class LoginMode(enum.Enum):
     PARM = 4
 
 
-async def load_credential_from_json(log_file: str) -> Credential:
+async def load_credential_from_json(log_file: str) -> Union[Credential, None]:
     """
     Load credential from json file.
 
@@ -51,8 +55,7 @@ async def load_credential_from_json(log_file: str) -> Credential:
     config_file: str = ".config.json"
     if not os.path.exists(config_file):
         log.warning("No historical login records found, using empty credential!")
-        credential: Credential = Credential()
-        return credential
+        return None
     else:
         with open(config_file, "r") as f:
             credential_dict: dict = json.load(f)

@@ -5,6 +5,9 @@ This module provides the function to obtain video data and generate word cloud i
 """
 
 
+from __future__ import annotations
+
+
 __all__ = ["word_cloud", "WordCloudContent"]
 
 

@@ -5,6 +5,9 @@ This module provides the function to save and read working path and danmu mark.
 """
 
 
+from __future__ import annotations
+
+
 __all__ = ['save_work_dir_to_txt', 'load_work_dir_from_txt', "save_danmu_mark_to_txt", "save_ffmpeg_path_to_txt"]
 
 

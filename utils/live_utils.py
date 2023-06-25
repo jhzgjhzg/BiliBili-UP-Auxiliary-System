@@ -5,6 +5,9 @@ This module provides some classes to help you get and process live data.
 """
 
 
+from __future__ import annotations
+
+
 __all__ = ["BiliLiveMonitor", "BiliLiveProcess"]
 
 

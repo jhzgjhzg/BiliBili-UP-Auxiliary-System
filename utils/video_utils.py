@@ -5,6 +5,9 @@ This module provides the BiliVideo class, which is used to get video information
 """
 
 
+from __future__ import annotations
+
+
 __all__ = ["BiliVideo", "VideoDownloadMode"]
 
 

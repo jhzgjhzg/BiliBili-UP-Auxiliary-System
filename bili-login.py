@@ -5,6 +5,9 @@ This module provides a command line interface for logining to bilibili.
 """
 
 
+from __future__ import annotations
+
+
 __all__ = ["sync_main", "tyro_cli"]
 
 

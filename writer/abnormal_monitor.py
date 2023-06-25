@@ -5,6 +5,9 @@ All exception classes in the project.
 """
 
 
+from __future__ import annotations
+
+
 class ParameterInputError(Exception):
     """
     Raise when parameter input error or no parameter input.

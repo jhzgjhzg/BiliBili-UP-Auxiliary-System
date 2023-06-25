@@ -5,6 +5,9 @@ This module provides the BiliUser class, which is used to get user information a
 """
 
 
+from __future__ import annotations
+
+
 __all__ = ["BiliUser"]
 
 

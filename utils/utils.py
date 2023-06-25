@@ -5,6 +5,9 @@ Some small classes, recording danmu, reply, and other information.
 """
 
 
+from __future__ import annotations
+
+
 __all__ = ["BiliVideoReply", "BiliVideoDanmu", "BiliVideoTag", "BiliLiveDanmu",
            "BiliLiveGift", "BiliLiveGuard", "BiliLiveSC"]
 

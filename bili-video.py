@@ -5,6 +5,9 @@ This module provides a command line interface for downloading videos, audio or g
 """
 
 
+from __future__ import annotations
+
+
 __all__ = ["sync_main", "tyro_cli"]
 
 
@@ -52,7 +55,8 @@ def sync_main(video_id: Union[str, int],
     log.add_config(sys_handler)
 
     credential = sync(sli.load_credential_from_json(log_file))
-    credential = sync(sli.refresh_credential(credential, log_file))
+    if credential is not None:
+        credential = sync(sli.refresh_credential(credential, log_file))
 
     if process == "wordcloud":
         wm = sv.WordCloudContent(wmode)

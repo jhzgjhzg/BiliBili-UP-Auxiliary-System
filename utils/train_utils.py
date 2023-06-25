@@ -2,6 +2,10 @@
 
 """
 
+
+from __future__ import annotations
+
+
 from utils import search_utils as su
 
 

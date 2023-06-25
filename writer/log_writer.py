@@ -5,6 +5,9 @@ Custom log output and output format.
 """
 
 
+from __future__ import annotations
+
+
 __all__ = ['Logger', 'Handler']
 
 
