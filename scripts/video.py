@@ -123,7 +123,7 @@ async def word_cloud(video_id: Union[str, int],
 
 
 # TODO: Effective Chinese sentiment analysis tool
-# def sentiment_analysis() -> None:
+# def _sentiment_analysis() -> None:
 #     """
 #     Conduct emotional analysis on video comments and barrage, and generate emotional statistical charts.
 #     """
