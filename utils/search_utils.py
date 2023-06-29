@@ -3,12 +3,10 @@
 """
 
 
+from __future__ import annotations
 from bilibili_api import search as bas
 from writer import log_writer as lw
 import time
-
-
-from __future__ import annotations
 
 
 class BiliSearch(object):

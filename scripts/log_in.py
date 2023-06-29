@@ -6,12 +6,6 @@ This module provides the function to log in to Bilibili, save and read credentia
 
 
 from __future__ import annotations
-
-
-__all__ = ['load_credential_from_json', "save_credential_to_json", "log_in_by_QR_code", "log_in_by_password",
-           "log_in_by_verification_code", "refresh_credential", "save_credential_by_parm_to_json", "LoginMode"]
-
-
 from bilibili_api import login, user, Credential
 from bilibili_api import settings
 from bilibili_api.exceptions import (CredentialNoBiliJctException, CredentialNoSessdataException,

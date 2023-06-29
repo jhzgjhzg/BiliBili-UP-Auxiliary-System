@@ -93,6 +93,7 @@ class BiliLiveMonitor(bal.LiveRoom, bal.LiveDanmaku):
         self.guard_excel_file: Union[str, None] = None
         self.view_txt_file: Union[str, None] = None
         self.live_info_txt_file: Union[str, None] = None
+        self.todo_txt_file: Union[str, None] = None
 
         self.log_file: str = log
         self.log: Union[lw.Logger, None] = None
@@ -255,6 +256,11 @@ class BiliLiveMonitor(bal.LiveRoom, bal.LiveDanmaku):
         if not os.path.exists(self.view_txt_file):
             with open(self.view_txt_file, "a") as f:
                 f.write(f"time,view\n")
+
+        self.todo_txt_file: str = os.path.join(self.work_dir, ".todo.txt")
+        with open(self.todo_txt_file, "a") as f:
+            f.write(os.path.abspath(current_live_output_dir))
+            f.write("\n")
 
     async def load_danmu_mark(self) -> None:
         """
@@ -430,7 +436,8 @@ class BiliLiveProcess(object):
             log: the log file path
             work_dir: the work directory
         """
-        self.work_dir: Union[str, None] = None
+        self.work_dir: list = []
+        self.todo_txt_file: Union[str, None] = None
         self.output_dir: Union[str, None] = None
         self.start_time: Union[int, None] = None
 
@@ -450,7 +457,7 @@ class BiliLiveProcess(object):
         self.log_file: str = log
         self.log: Union[lw.Logger, None] = None
         self.__set_log()
-        sync(self.__load_work_dir(work_dir))
+        self.__load_work_dir(work_dir)
 
     def __set_log(self) -> None:
         """
@@ -467,25 +474,50 @@ class BiliLiveProcess(object):
         self.log.add_config(file_handler)
         self.log.add_config(sys_handler)
 
-    async def __load_work_dir(self, work_dir: str) -> None:
+    def __load_work_dir(self, work_dir: str) -> None:
         """
         Load the working directory.
 
         Args:
             work_dir: the working directory path
         """
-        self.work_dir = os.path.abspath(work_dir)
-        st: str = os.path.split(work_dir)[-1]
-        t = time.mktime(time.strptime(st, "%Y-%m-%d_%H-%M-%S"))
-        self.start_time = int(t)
-        await self.__load_data()
+        dir_name: str = os.path.split(work_dir)[-1]
+        if not dir_name.isdigit():
+            self.work_dir.append(os.path.abspath(work_dir))
+            if os.path.exists(self.todo_txt_file):
+                todo_list: list[str] = []
+                with open(self.todo_txt_file, "r") as f:
+                    for live_dir in f.readlines():
+                        temp: str = live_dir.removesuffix("\n")
+                        if temp not in todo_list:
+                            todo_list.append(temp)
+                if os.path.abspath(work_dir) in todo_list:
+                    todo_list.remove(os.path.abspath(work_dir))
+                with open(self.todo_txt_file, "w") as f:
+                    for live_dir in todo_list:
+                        f.write(live_dir)
+                        f.write("\n")
+        else:
+            self.todo_txt_file: str = os.path.join(work_dir, ".todo.txt")
+            if not self.todo_txt_file:
+                self.log.warning("No data found to process")
+            else:
+                with open(self.todo_txt_file, "r") as f:
+                    for live_dir in f.readlines():
+                        temp: str = live_dir.removesuffix("\n")
+                        if temp not in self.work_dir:
+                            self.work_dir.append(temp)
+                os.remove(self.todo_txt_file)
 
-    async def __load_danmu(self) -> None:
+    async def __load_danmu(self, live_dir: str) -> None:
         """
         Load the danmu.
+
+        Args:
+            live_dir: directory for storing single live-streaming data
         """
         self.log.info("Loading the complete danmu data and the marked danmu...")
-        danmu_excel_file: str = os.path.join(self.work_dir, "danmu.xlsx")
+        danmu_excel_file: str = os.path.join(live_dir, "danmu.xlsx")
         if not os.path.exists(danmu_excel_file):
             self.log.warning("The live broadcast did not save the complete danmu data, so frequency analysis cannot be "
                              "conducted!")
@@ -503,7 +535,7 @@ class BiliLiveProcess(object):
                     self.danmu.append(danmu)
                 self.log.info("Load the danmu successful.")
 
-        marked_danmu_excel_file: str = os.path.join(self.work_dir, "marked_danmu.xlsx")
+        marked_danmu_excel_file: str = os.path.join(live_dir, "marked_danmu.xlsx")
         if not os.path.exists(marked_danmu_excel_file):
             self.log.warning("There is no marked danmu!")
         else:
@@ -518,12 +550,15 @@ class BiliLiveProcess(object):
                     self.marked_danmu.append(danmu)
                 self.log.info("Load the marked danmu successful.")
 
-    async def __load_gift(self) -> None:
+    async def __load_gift(self, live_dir: str) -> None:
         """
         Load the gift.
+
+        Args:
+            live_dir: directory for storing single live-streaming data
         """
         self.log.info("Loading the gift...")
-        gift_excel_file: str = os.path.join(self.work_dir, "gift.xlsx")
+        gift_excel_file: str = os.path.join(live_dir, "gift.xlsx")
         if not os.path.join(gift_excel_file):
             self.log.warning("The gift data file does not exist!")
         else:
@@ -540,12 +575,15 @@ class BiliLiveProcess(object):
                     self.gift.append(gift)
                 self.log.info("Load the gift successful.")
 
-    async def __load_sc(self) -> None:
+    async def __load_sc(self, live_dir: str) -> None:
         """
         Load the sc.
+
+        Args:
+            live_dir: directory for storing single live-streaming data
         """
         self.log.info("Loading the sc...")
-        sc_excel_file: str = os.path.join(self.work_dir, "sc.xlsx")
+        sc_excel_file: str = os.path.join(live_dir, "sc.xlsx")
         if not os.path.join(sc_excel_file):
             self.log.warning("The sc data file does not exist!")
         else:
@@ -560,12 +598,15 @@ class BiliLiveProcess(object):
                     self.sc.append(sc)
                 self.log.info("Load the sc successful.")
 
-    async def __load_guard(self) -> None:
+    async def __load_guard(self, live_dir: str) -> None:
         """
         Load the guard.
+
+        Args:
+            live_dir: directory for storing single live-streaming data
         """
         self.log.info("Load the guard...")
-        guard_excel_file: str = os.path.join(self.work_dir, "guard.xlsx")
+        guard_excel_file: str = os.path.join(live_dir, "guard.xlsx")
         if not os.path.exists(guard_excel_file):
             self.log.warning("The guard data file not exist!")
         else:
@@ -580,12 +621,15 @@ class BiliLiveProcess(object):
                     self.guard.append(guard)
                 self.log.info("Load the guard successful.")
 
-    async def __load_view(self) -> None:
+    async def __load_view(self, live_dir: str) -> None:
         """
+        Load the popularity.
 
+        Args:
+            live_dir: directory for storing single live-streaming data
         """
         self.log.info("Loading the popularity data...")
-        view_txt_file: str = os.path.join(self.work_dir, "view.txt")
+        view_txt_file: str = os.path.join(live_dir, "view.txt")
         if not os.path.exists(view_txt_file):
             self.log.warning("The popularity data file not exist!")
         else:
@@ -598,11 +642,14 @@ class BiliLiveProcess(object):
                             self.view_time.append(int(content[0]))
             self.log.info("Load the popularity data successful.")
 
-    async def __load_output_dir(self) -> None:
+    async def __load_output_dir(self, live_dir: str) -> None:
         """
         Load the output directory.
+
+        Args:
+            live_dir: directory for storing single live-streaming data
         """
-        self.output_dir = os.path.join(self.work_dir, "analysis")
+        self.output_dir = os.path.join(live_dir, "analysis")
         if not os.path.exists(self.output_dir):
             os.mkdir(self.output_dir)
 
@@ -616,32 +663,40 @@ class BiliLiveProcess(object):
             with open(self.sparse_suggestion_txt_file, "a") as f:
                 f.write("seconds from the start of the live, suggested content\n")
 
-    async def __load_data(self) -> None:
+    async def __load_data(self, live_dir: str) -> None:
         """
         Load the data of the live room from the work directory.
-        """
-        await self.__load_danmu()
-        await self.__load_gift()
-        await self.__load_sc()
-        await self.__load_guard()
-        await self.__load_view()
-        await self.__load_output_dir()
 
-    async def danmu_robust_process(self, interval: float) -> None:
+        Args:
+            live_dir: directory for storing single live-streaming data
+        """
+        self.log.info(f"Loading data from {live_dir}...")
+        st: str = os.path.split(live_dir)[-1]
+        t = time.mktime(time.strptime(st, "%Y-%m-%d_%H-%M-%S"))
+        self.start_time = int(t)
+        await self.__load_danmu(live_dir)
+        await self.__load_gift(live_dir)
+        await self.__load_sc(live_dir)
+        await self.__load_guard(live_dir)
+        await self.__load_view(live_dir)
+        await self.__load_output_dir(live_dir)
+
+    async def __danmu_robust_process(self, interval: float, live_dir: str) -> None:
         """
         Selecting marking danmu with a certain frequency.
 
         Args:
             interval: the minimum minute interval between two selected danmu
+            live_dir: directory for storing single live-streaming data
         """
         self.log.info(f"Selecting the marked danmu every {interval} minute...")
         if not self.marked_danmu:
             self.log.warning("There is no marked danmu and cannot be robust processed!")
-            self.log.error(f"Please check that {os.path.join(self.work_dir, 'marked_danmu.xlsx')} "
+            self.log.error(f"Please check that {os.path.join(live_dir, 'marked_danmu.xlsx')} "
                            f"exists and is not empty.")
             return
 
-        robust_danmu_excel_file: str = os.path.join(self.work_dir, "robust_danmu.xlsx")
+        robust_danmu_excel_file: str = os.path.join(live_dir, "robust_danmu.xlsx")
         if not os.path.exists(robust_danmu_excel_file):
             temp_excel: DataFrame = pd.DataFrame()
             temp_excel.to_excel(robust_danmu_excel_file, index=False)
@@ -689,12 +744,13 @@ class BiliLiveProcess(object):
             self.log.info(f"Providing sparse suggestions for editing successful. The result is saved in "
                           f"{self.sparse_suggestion_txt_file}.")
 
-    async def __complete_danmu_frequency_analysis(self, interval: float) -> None:
+    async def __complete_danmu_frequency_analysis(self, interval: float, live_dir: str) -> None:
         """
         Analyze the frequency of complete danmu.
 
         Args:
             interval: the second interval for danmu frequency analysis
+            live_dir: directory for storing single live-streaming data
         """
         self.log.info(f"Analyzing the frequency of complete danmu...")
         if interval < 30:
@@ -702,7 +758,7 @@ class BiliLiveProcess(object):
                              "too much and reduce the perception.")
         if not self.danmu:
             self.log.warning("There is no complete danmu data, and frequency could not be performed!")
-            self.log.error(f"Please check that {os.path.join(self.work_dir, 'danmu.xlsx')} "
+            self.log.error(f"Please check that {os.path.join(live_dir, 'danmu.xlsx')} "
                            f"exists and is not empty.")
         else:
             count_list: list[int] = []
@@ -754,12 +810,13 @@ class BiliLiveProcess(object):
                 self.log.info(f"The analysis of complete danmu frequency is completed, and the original result graph is "
                               f"saved as {original_name}.")
 
-    async def __marked_danmu_frequency_analysis(self, interval: float) -> None:
+    async def __marked_danmu_frequency_analysis(self, interval: float, live_dir: str) -> None:
         """
         Analyze the frequency of marked danmu.
 
         Args:
             interval: the second interval for danmu frequency analysis
+            live_dir: directory for storing single live-streaming data
         """
         self.log.info("Analyzing the frequency of marked danmu...")
         if interval < 30:
@@ -767,7 +824,7 @@ class BiliLiveProcess(object):
                              "too much and reduce the perception.")
         if not self.marked_danmu:
             self.log.warning("There is no marked danmu data, and frequency could not be performed!")
-            self.log.error(f"Please check that {os.path.join(self.work_dir, 'marked_danmu.xlsx')} "
+            self.log.error(f"Please check that {os.path.join(live_dir, 'marked_danmu.xlsx')} "
                            f"exists and is not empty.")
         else:
             count_mark_list: list[int] = []
@@ -819,15 +876,16 @@ class BiliLiveProcess(object):
                 self.log.info(f"The analysis of marked danmu frequency is completed, and the original result graph is "
                               f"saved as {original_name}.")
 
-    async def __danmu_frequency_analysis(self, interval: float) -> None:
+    async def __danmu_frequency_analysis(self, interval: float, live_dir: str) -> None:
         """
         Analyze the frequency of danmu.
 
         Args:
             interval: the second interval for danmu frequency analysis
+            live_dir: directory for storing single live-streaming data
         """
-        await self.__complete_danmu_frequency_analysis(interval)
-        await self.__marked_danmu_frequency_analysis(interval)
+        await self.__complete_danmu_frequency_analysis(interval, live_dir)
+        await self.__marked_danmu_frequency_analysis(interval, live_dir)
 
     async def __merge_revenue(self) -> None:
         """
@@ -866,20 +924,21 @@ class BiliLiveProcess(object):
             if temp:
                 self.revenue += temp
 
-    async def __revenue_stat_by_time(self, interval: float) -> None:
+    async def __revenue_stat_by_time(self, interval: float, live_dir: str) -> None:
         """
         Analyze revenue from live-streaming rooms by time.
 
         Args:
             interval: the minute interval for gift analysis
+            live_dir: directory for storing single live-streaming data
         """
         self.log.info("Analyzing revenue from live-streaming rooms by time...")
         await self.__merge_revenue()
         if not self.revenue:
             self.log.warning("There is no revenue data!")
-            self.log.error(f"Please check that {os.path.join(self.work_dir, 'gift.xlsx')}"
-                           f", {os.path.join(self.work_dir, 'sc.xlsx')} "
-                           f"and {os.path.join(self.work_dir, 'guard.xlsx')} "
+            self.log.error(f"Please check that {os.path.join(live_dir, 'gift.xlsx')}"
+                           f", {os.path.join(live_dir, 'sc.xlsx')} "
+                           f"and {os.path.join(live_dir, 'guard.xlsx')} "
                            f"exist and are not empty.")
         else:
             count_list: list[int] = []
@@ -986,25 +1045,29 @@ class BiliLiveProcess(object):
         plt.savefig(name, dpi=300)
         self.log.info(f"The analysis of revenue by type is completed, and the result graph is saved as {name}.")
 
-    async def __revenue_stat(self, interval: float) -> None:
+    async def __revenue_stat(self, interval: float, live_dir: str) -> None:
         """
         Analyze revenue from live-streaming rooms.
 
         Args:
             interval: the minute interval for revenue analysis
+            live_dir: directory for storing single live-streaming data
         """
-        await self.__revenue_stat_by_time(interval)
+        await self.__revenue_stat_by_time(interval, live_dir)
         await self._revenue_stat_by_price()
         await self.__revenue_stat_by_type()
 
-    async def __view_stat(self) -> None:
+    async def __view_stat(self, live_dir: str) -> None:
         """
         Analyze the number of viewers in live-streaming rooms.
+
+        Args:
+            live_dir: directory for storing single live-streaming data
         """
         self.log.info("Analyzing the popularity of the live broadcast room...")
         if not self.view:
             self.log.warning("There is no popularity data!")
-            self.log.error(f"Please check that {os.path.join(self.work_dir, 'view.txt')} "
+            self.log.error(f"Please check that {os.path.join(live_dir, 'view.txt')} "
                            f"exists and is not empty.")
         else:
             view_time: list[int] = [self.view_time[i] - self.start_time for i in range(len(self.view_time))]
@@ -1017,15 +1080,25 @@ class BiliLiveProcess(object):
             plt.savefig(name)
             self.log.info(f"The analysis of popularity is completed, and the result graph is saved as {name}.")
 
-    async def analysis(self, revenue_interval: float, danmu_interval: float) -> None:
+    async def analysis(self, revenue_interval: float, danmu_interval: float, robust: bool,
+                       robust_interval: float) -> None:
         """
         Analyze the live-streaming room.
 
         Args:
             revenue_interval: the minute interval for revenue analysis
             danmu_interval: the second interval for danmu analysis
+            robust: whether to filter marked danmu
+            robust_interval: the minute interval for filtering marked danmu
         """
-        await self.__revenue_stat(revenue_interval)
-        await self.__view_stat()
-        await self.__danmu_frequency_analysis(danmu_interval)
-        await self.__editing_suggestions()
+        if self.work_dir:
+            for live_dir in self.work_dir:
+                await self.__load_data(live_dir)
+                if robust:
+                    await self.__danmu_robust_process(robust_interval, live_dir)
+                await self.__revenue_stat(revenue_interval, live_dir)
+                await self.__view_stat(live_dir)
+                await self.__danmu_frequency_analysis(danmu_interval, live_dir)
+                await self.__editing_suggestions()
+        else:
+            self.log.warning("No unprocessed data!")

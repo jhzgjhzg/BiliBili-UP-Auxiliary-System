@@ -6,11 +6,6 @@ This module provides a command line interface for collecting user information an
 
 
 from __future__ import annotations
-
-
-__all__ = ["sync_main", "tyro_cli"]
-
-
 from utils import user_utils as uu
 from typing import Union, Literal
 from bilibili_api import sync, user as bau

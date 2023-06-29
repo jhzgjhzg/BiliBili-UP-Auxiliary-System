@@ -6,38 +6,24 @@ This module provides a command line interface for downloading videos, audio or g
 
 
 from __future__ import annotations
-
-
-__all__ = ["sync_main", "tyro_cli"]
-
-
 import matplotlib.pyplot as plt
 import tyro
 from scripts import video as sv, log_in as sli
 from utils import video_utils as vu
 from bilibili_api import sync
 from scripts import config as sc
-from writer import log_writer as lw
+from writer import log_writer as lw, abnormal_monitor as am
 import os
-from typing import Literal, Union
+from typing import Union
+from numpy import typing as npt
 
 
-def sync_main(video_id: Union[str, int],
-              process: Literal["wordcloud", "download"] = "wordcloud",
-              dmode: Literal[1, 2] = 1,
-              wmode: Literal[1, 2, 3] = 1,
-              sec: bool = True,
-              mask: Union[str, None] = None) -> None:
+def sync_tyro_main(config: Union[sv.BiliVideoConfigWordCloud, sv.BiliVideoConfigDownload]) -> None:
     """
-    Download videos, audio or generate word image.
+    Main function for tyro command-line interface.
 
     Args:
-        video_id: video aid or bvid
-        process: action to be performed
-        dmode: video download type, where 1 represents video and 2 represents audio
-        wmode: word cloud content, 1 represents comments, 2 represents barrage, and 3 represents both
-        sec: whether the word cloud image related to replies include secondary replies
-        mask: word cloud mask, filling the white pixel with word clouds
+        config: configuration
     """
     work_dir: str = sync(sc.load_work_dir_from_txt())
     log_output: str = os.path.join(work_dir, "log")
@@ -58,24 +44,31 @@ def sync_main(video_id: Union[str, int],
     if credential is not None:
         credential = sync(sli.refresh_credential(credential, log_file))
 
-    if process == "wordcloud":
-        wm = sv.WordCloudContent(wmode)
-        word_cloud_mask = plt.imread(mask)
-        sync(sv.word_cloud(video_id, credential, wm, sec, word_cloud_mask, log_file, work_dir))
+    if isinstance(config, sv.BiliVideoConfigWordCloud):
+        if config.video_id is None:
+            raise am.ParameterInputError("Video ID not entered!")
+        wm = sv.WordCloudContent(config.mode)
+        word_cloud_mask: npt.NDArray = plt.imread(config.mask)
+        sync(sv.word_cloud(config.video_id, credential, wm, config.sec, word_cloud_mask, log_file, work_dir))
     else:
-        dm = vu.VideoDownloadMode(dmode)
-        if isinstance(video_id, int):
-            video = vu.BiliVideo(log=log_file, aid=video_id, credential=credential, work_dir=work_dir)
+        if config.video_id is None:
+            raise am.ParameterInputError("Video ID not entered!")
+        dm = vu.VideoDownloadMode(config.mode)
+        if isinstance(config.video_id, int):
+            video = vu.BiliVideo(log=log_file, aid=config.video_id, credential=credential, work_dir=work_dir)
         else:
-            video = vu.BiliVideo(log=log_file, bvid=video_id, credential=credential, work_dir=work_dir)
+            video = vu.BiliVideo(log=log_file, bvid=config.video_id, credential=credential, work_dir=work_dir)
         sync(video.download(dm))
 
 
 def tyro_cli() -> None:
     """
-    Command line interface
+    Tyro command line interface.
     """
-    tyro.cli(sync_main)
+    tyro.extras.set_accent_color("bright_yellow")
+    sync_tyro_main(
+        tyro.cli(sv.VideoConfigUnion, description="Download videos, audio or generate word image.")
+    )
 
 
 if __name__ == "__main__":

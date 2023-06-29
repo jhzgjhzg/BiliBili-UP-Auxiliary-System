@@ -6,11 +6,6 @@ This module provides the BiliUser class, which is used to get user information a
 
 
 from __future__ import annotations
-
-
-__all__ = ["BiliUser"]
-
-
 # data output path template: user_output/{user_id}/file_name: {fans_num.txt, guard_num.txt, charge_num.txt,
 #                                                             address.xlsx, address_unreceived.txt}
 # fans_num.txt content format: {time},{fans_num}

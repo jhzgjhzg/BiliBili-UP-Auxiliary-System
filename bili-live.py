@@ -6,56 +6,23 @@ This module provides a command line interface for monitoring the live broadcast 
 
 
 from __future__ import annotations
-
-
-__all__ = ["sync_main", "tyro_cli"]
-
-
 from utils import live_utils as lu, user_utils as uu
-from typing import Union, Literal
+from typing import Union
 from writer import log_writer as lw, abnormal_monitor as am
 import os
 from bilibili_api import sync
-from scripts import config as sc, log_in as sli
+from scripts import config as sc, log_in as sli, live as sl
 import tyro
 
 
-def sync_main(mode: Literal["auto", "monitor", "process"] = "auto",
-              user_id: Union[int, None] = None,
-              live_id: Union[int, None] = None,
-              save_all_danmu: bool = True,
-              danmu_disconnect: bool = True,
-              auto_disconnect: bool = False,
-              max_retry: int = 10,
-              retry_after: float = 1,
-              data_dir: Union[str, None] = None,
-              revenue_interval: float = 5,
-              danmu_interval: float = 30,
-              robust: bool = True,
-              robust_interval: float = 5,
-              forever: bool = True) -> None:
+def sync_tyro_main(config: Union[sl.BiliLiveConfigAuto, sl.BiliLiveConfigMonitor, sl.BiliLiveConfigProcess]) -> None:
     """
-    Monitor and process live broadcast room data.
+    Main function for tyro command-line interface.
 
     Args:
-        mode: live monitoring mode, 'auto' represents the automatic start of monitoring for the upper broadcast,
-              and the automatic processing of data for the lower broadcast; 'monitor 'represents only monitoring the
-              live broadcast room,' process' represents only processing data, and the folder where the data is located
-              needs to be specified
-        user_id: up uid, either user_id or live_id must be filled in
-        live_id: live room id, either user_id or live_id must be filled in
-        save_all_danmu: whether to save all live danmu
-        danmu_disconnect: whether to disconnect from the live broadcast room by sending danmu "###disconnect###"
-        auto_disconnect: whether to disconnect from the live room automatically when the live broadcast ends
-        max_retry: maximum number of reconnection attempts when the live broadcast room is unexpectedly disconnected
-        retry_after: time interval for trying to initiate a reconnection after accidental disconnection, unit: second
-        data_dir: the file where the data is located
-        revenue_interval: time interval for revenue statistics, unit: minute
-        danmu_interval: time interval for danmu situations, unit: second
-        robust: whether to filter marked danmu
-        robust_interval: time interval for filtering marked danmu, unit: minute
-        forever: whether to long connect the live broadcast room
+        config: configuration
     """
+    print(config.auto_disconnect)
     work_dir: str = sync(sc.load_work_dir_from_txt())
     log_output: str = os.path.join(work_dir, "log")
     log_file: str = os.path.join(log_output, "live_log.txt")
@@ -75,74 +42,78 @@ def sync_main(mode: Literal["auto", "monitor", "process"] = "auto",
     if credential is not None:
         credential = sync(sli.refresh_credential(credential, log_file))
 
-    if mode == "auto":
-        log.warning("")  # TODO
+    if isinstance(config, sl.BiliLiveConfigAuto):
+        log.warning("The setting mode is 'auto', and in this mode, 'auto_disconnect', 'danmu_disconnect', and "
+                    "'robust' are set to true, and data processing is automatically performed after disconnecting "
+                    "the live streaming connection!")
 
-        auto_disconnect = True
-        danmu_disconnect = True
-        robust = True
+        config.auto_disconnect = True
+        config.danmu_disconnect = True
+        config.robust = True
 
-        if user_id is None:
-            if live_id is None:
+        if config.user_id is None:
+            if config.live_id is None:
                 raise am.ParameterInputError("user_id and live_id must be entered either!")
 
-        if user_id is not None:
-            user = uu.BiliUser(uid=user_id, log=log_file, work_dir=work_dir, credential=credential)
-            live_id = user.room_id
+        if config.user_id is not None:
+            user = uu.BiliUser(uid=config.user_id, log=log_file, work_dir=work_dir, credential=credential)
+            config.live_id = user.room_id
 
-        live_monitor = lu.BiliLiveMonitor(live_id, log_file, work_dir, max_retry, retry_after, credential)
+        live_monitor = lu.BiliLiveMonitor(config.live_id, log_file, work_dir, config.max_retry,
+                                          config.retry_after, credential)
         sync(live_monitor.load_danmu_mark())
 
-        sync(live_monitor.monitor(save_all_danmu, danmu_disconnect, auto_disconnect))
+        sync(live_monitor.monitor(config.save_all_danmu, config.danmu_disconnect, config.auto_disconnect))
         live_process = lu.BiliLiveProcess(log_file, live_monitor.work_dir)
-        if robust:
-            sync(live_process.danmu_robust_process(robust_interval))
-        sync(live_process.analysis(revenue_interval, danmu_interval))
+        sync(live_process.analysis(config.revenue_interval, config.danmu_interval, config.robust, config.robust_interval))
 
-        while forever:
+        while config.forever:
             log.warning("Long connecting live room. To exit the program, please use ctrl + c.")
-            sync(live_monitor.monitor(save_all_danmu, danmu_disconnect, auto_disconnect))
+            sync(live_monitor.monitor(config.save_all_danmu, config.danmu_disconnect, config.auto_disconnect))
             live_process = lu.BiliLiveProcess(log_file, live_monitor.work_dir)
-            if robust:
-                sync(live_process.danmu_robust_process(robust_interval))
-            sync(live_process.analysis(revenue_interval, danmu_interval))
+            sync(live_process.analysis(config.revenue_interval, config.danmu_interval, config.robust,
+                                       config.robust_interval))
 
-    elif mode == "monitor":
-        log.warning("")  # TODO
+    elif isinstance(config, sl.BiliLiveConfigMonitor):
+        log.warning("Set the mode to 'monitor', and in this mode, only data monitoring "
+                    "will be performed without data processing!")
 
-        if user_id is None:
-            if live_id is None:
+        if config.user_id is None:
+            if config.live_id is None:
                 raise am.ParameterInputError("user_id and live_id must be entered either!")
 
-        if user_id is not None:
-            user = uu.BiliUser(uid=user_id, log=log_file, work_dir=work_dir, credential=credential)
-            live_id = user.room_id
+        if config.user_id is not None:
+            user = uu.BiliUser(uid=config.user_id, log=log_file, work_dir=work_dir, credential=credential)
+            config.live_id = user.room_id
 
-        live_monitor = lu.BiliLiveMonitor(live_id, log_file, work_dir, max_retry, retry_after, credential)
+        live_monitor = lu.BiliLiveMonitor(config.live_id, log_file, work_dir, config.max_retry,
+                                          config.retry_after, credential)
         sync(live_monitor.load_danmu_mark())
 
-        sync(live_monitor.monitor(save_all_danmu, danmu_disconnect, auto_disconnect))
-        while forever:
+        sync(live_monitor.monitor(config.save_all_danmu, config.danmu_disconnect, config.auto_disconnect))
+        while config.forever:
             log.warning("Long connecting live room. To exit the program, please use ctrl + c.")
-            sync(live_monitor.monitor(save_all_danmu, danmu_disconnect, auto_disconnect))
+            sync(live_monitor.monitor(config.save_all_danmu, config.danmu_disconnect, config.auto_disconnect))
 
-    elif mode == "process":
-        log.warning("")  # TODO
+    elif isinstance(config, sl.BiliLiveConfigProcess):
+        log.warning("Set the mode to 'process', and in this mode, a data folder needs to be specified!")
 
-        if data_dir is None:
-            raise am.ParameterInputError("")  # TODO
+        if config.data_dir is None:
+            raise am.ParameterInputError("No data folder specified!")
 
-        live_process = lu.BiliLiveProcess(log_file, data_dir)
-        if robust:
-            sync(live_process.danmu_robust_process(robust_interval))
-        sync(live_process.analysis(revenue_interval, danmu_interval))
+        live_process = lu.BiliLiveProcess(log_file, config.data_dir)
+        sync(live_process.analysis(config.revenue_interval, config.danmu_interval, config.robust,
+                                   config.robust_interval))
 
 
 def tyro_cli() -> None:
     """
-    Command line interface
+    Tyro command line interface.
     """
-    tyro.cli(sync_main)
+    tyro.extras.set_accent_color("bright_yellow")
+    sync_tyro_main(
+        tyro.cli(sl.LiveConfigUnion, description="Monitor and process live broadcast room data.")
+    )
 
 
 if __name__ == "__main__":
