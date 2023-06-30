@@ -1,5 +1,5 @@
 """
-Bili-UAS.scripts.video
+Bili_UAS.scripts.video
 
 This module provides the function to obtain video data and generate word cloud images.
 """
@@ -10,10 +10,10 @@ from typing import Union, Literal
 import jieba
 import wordcloud
 import pandas as pd
-from utils import video_utils as vu
+from Bili_UAS.utils import video_utils as vu
 from numpy import typing as npt
 from bilibili_api import Credential
-from writer import log_writer as lw
+from Bili_UAS.writer import log_writer as lw
 import enum
 import os
 from dataclasses import dataclass

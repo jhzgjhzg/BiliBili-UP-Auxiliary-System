@@ -1,5 +1,5 @@
 """
-Bili-UAS.bili-video
+Bili_UAS.bili-video
 
 This module provides a command line interface for downloading videos, audio or generating word image.
 """
@@ -8,11 +8,10 @@ This module provides a command line interface for downloading videos, audio or g
 from __future__ import annotations
 import matplotlib.pyplot as plt
 import tyro
-from scripts import video as sv, log_in as sli
-from utils import video_utils as vu
+from Bili_UAS.scripts import video as sv, log_in as sli, config as sc
+from Bili_UAS.utils import video_utils as vu
 from bilibili_api import sync
-from scripts import config as sc
-from writer import log_writer as lw, abnormal_monitor as am
+from Bili_UAS.writer import log_writer as lw, abnormal_monitor as am
 import os
 from typing import Union
 from numpy import typing as npt

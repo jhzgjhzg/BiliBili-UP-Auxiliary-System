@@ -1,5 +1,5 @@
 """
-Bili-UAS.utils.video_utils
+Bili_UAS.utils.video_utils
 
 This module provides the BiliVideo class, which is used to get video information, danmu, replies and tags.
 """
@@ -7,8 +7,8 @@ This module provides the BiliVideo class, which is used to get video information
 
 from __future__ import annotations
 import numpy as np
-from utils.utils import BiliVideoReply, BiliVideoDanmu, BiliVideoTag
-from writer import log_writer as lw, abnormal_monitor as am
+from .utils import BiliVideoReply, BiliVideoDanmu, BiliVideoTag
+from Bili_UAS.writer import log_writer as lw, abnormal_monitor as am
 import time
 import copy
 import re

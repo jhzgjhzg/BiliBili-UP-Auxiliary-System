@@ -1,17 +1,17 @@
 """
-Bili-UAS.bili-user
+Bili_UAS.bili-user
 
 This module provides a command line interface for collecting user information and performing user operations.
 """
 
 
 from __future__ import annotations
-from utils import user_utils as uu
+from Bili_UAS.utils import user_utils as uu
 from typing import Union
 from bilibili_api import sync, user as bau
-from writer import log_writer as lw, abnormal_monitor as am
+from Bili_UAS.writer import log_writer as lw, abnormal_monitor as am
 import os
-from scripts import config as sc, log_in as sli, user as su
+from Bili_UAS.scripts import config as sc, log_in as sli, user as su
 import tyro
 
 

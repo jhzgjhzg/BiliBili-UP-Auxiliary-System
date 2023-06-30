@@ -1,5 +1,7 @@
 """
+Bili_UAS.scripts.user
 
+This module provides classes for configuring user data.
 """
 
 

@@ -4,7 +4,7 @@
 
 
 from __future__ import annotations
-from utils import search_utils as su
+import search_utils as su
 
 
 async def collect_videos(keywords: list[str], log: str) -> list[str]:

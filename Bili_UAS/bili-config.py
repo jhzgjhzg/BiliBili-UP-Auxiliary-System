@@ -1,17 +1,17 @@
 """
-Bili-UAS.bili-config
+Bili_UAS.bili-config
 
 This module provides a command line interface for setting work paths and danmu marks.
 """
 
 
 from __future__ import annotations
-from scripts import config as sc
+from Bili_UAS.scripts import config as sc
 import tyro
 from typing import Union
 import os
 from bilibili_api import sync
-from writer import log_writer as lw
+from Bili_UAS.writer import log_writer as lw
 
 
 def sync_tyro_main(work_dir: str,
@@ -21,7 +21,7 @@ def sync_tyro_main(work_dir: str,
     Set working path, ffmpeg path and danmu mark.
 
     Args:
-        work_dir: working directory of program output
+        work_dir: working directory of program test_output
         ffmpeg: the ffmpeg path in your computer
         mark: mark for marking live danmu, multiple marks need to be entered consecutively
     """

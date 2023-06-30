@@ -1,5 +1,7 @@
 """
+Bili_UAS.scripts.live
 
+This module provides classes for configuring live-streaming data monitoring.
 """
 
 

@@ -1,12 +1,12 @@
 """
-Bili-UAS.scripts.set_config
+Bili_UAS.scripts.config
 
 This module provides the function to save and read working path and danmu mark.
 """
 
 
 from __future__ import annotations
-from writer import abnormal_monitor as am
+from Bili_UAS.writer import abnormal_monitor as am
 import os
 
 
@@ -15,7 +15,7 @@ async def save_work_dir_to_txt(work_dir: str) -> None:
     Save working path to file.
     """
     work_dir_file: str = ".work_dir.txt"
-    output_dir: str = os.path.join(os.path.abspath(work_dir), "Bili-UAS-Output")
+    output_dir: str = os.path.join(os.path.abspath(work_dir), "Bili_UAS-Output")
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
     with open(work_dir_file, "w") as f:

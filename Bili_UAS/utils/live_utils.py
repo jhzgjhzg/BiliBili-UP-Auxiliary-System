@@ -1,27 +1,22 @@
 """
-Bili-UAS.utils.live_utils
+Bili_UAS.utils.live_utils
 
 This module provides some classes to help you get and process live data.
 """
 
 
-from __future__ import annotations
-
-
-__all__ = ["BiliLiveMonitor", "BiliLiveProcess"]
-
-
-# data output path template: live_output/{room_id}/{live_start_time}/file_name: {danmu.xlsx, marked_danmu.xlsx,
+# data test_output path template: live_output/{room_id}/{live_start_time}/file_name: {danmu.xlsx, marked_danmu.xlsx,
 #                            robust_danmu.xlsx, gift.xlsx, guard.xlsx, sc.xlsx, view.txt}
 # live info path: live_output/{room_id}/live_info.txt
-# After testing, 95% of the time it takes to create and open all output files is less than 0.02 seconds, and all data
+# After testing, 95% of the time it takes to create and open all test_output files is less than 0.02 seconds, and all data
 # within this time period after streaming cannot be recorded.
 
 
+from __future__ import annotations
 from bilibili_api import live as bal, sync, Credential
 from matplotlib import pyplot as plt
-from utils.utils import BiliLiveDanmu, BiliLiveGift, BiliLiveSC, BiliLiveGuard
-from writer import log_writer as lw
+from .utils import BiliLiveDanmu, BiliLiveGift, BiliLiveSC, BiliLiveGuard
+from Bili_UAS.writer import log_writer as lw
 import os
 import datetime
 import time
@@ -201,7 +196,7 @@ class BiliLiveMonitor(bal.LiveRoom, bal.LiveDanmaku):
 
     async def __load_output_file(self) -> None:
         """
-        Load the output file.
+        Load the test_output file.
         Includes Excel files for storing danmu, gifts,
         guards and SCs as well as txt files for storing popularity values.
         """
@@ -644,7 +639,7 @@ class BiliLiveProcess(object):
 
     async def __load_output_dir(self, live_dir: str) -> None:
         """
-        Load the output directory.
+        Load the test_output directory.
 
         Args:
             live_dir: directory for storing single live-streaming data

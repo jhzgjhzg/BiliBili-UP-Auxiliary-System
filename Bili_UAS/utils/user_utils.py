@@ -1,19 +1,19 @@
 """
-Bili-UAS.utils.user_utils
+Bili_UAS.utils.user_utils
 
 This module provides the BiliUser class, which is used to get user information and videos uploaded by the user.
 """
 
 
-from __future__ import annotations
-# data output path template: user_output/{user_id}/file_name: {fans_num.txt, guard_num.txt, charge_num.txt,
+# data test_output path template: user_output/{user_id}/file_name: {fans_num.txt, guard_num.txt, charge_num.txt,
 #                                                             address.xlsx, address_unreceived.txt}
 # fans_num.txt content format: {time},{fans_num}
 # guard_num.txt content format: {time},{guard_total_num},{governor_num},{supervisor_num},{captain_num}
 
 
+from __future__ import annotations
 from bilibili_api import user as bau, live as bal, sync
-from writer import log_writer as lw
+from Bili_UAS.writer import log_writer as lw
 from bilibili_api import Credential, session
 import os
 import time
@@ -157,7 +157,7 @@ class BiliUser(bau.User, bal.LiveRoom):
 
     async def __load_output_file(self) -> None:
         """
-        Load the output file.
+        Load the test_output file.
         """
         self.fans_num_txt_file: str = os.path.join(self.work_dir, "fans_num.txt")
         if not os.path.exists(self.fans_num_txt_file):

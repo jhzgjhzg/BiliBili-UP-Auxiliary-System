@@ -1,7 +1,7 @@
 """
-Bili-UAS.writer.log_writer
+Bili_UAS.writer.log_writer
 
-Custom log output and output format.
+Custom log test_output and test_output format.
 """
 
 
@@ -13,7 +13,7 @@ from typing import Union
 
 class Handler:
     """
-    Log output configuration class. Set the destination for log output and what level of log to output.
+    Log test_output configuration class. Set the destination for log test_output and what level of log to test_output.
     """
     def __init__(self, output_mode: str) -> None:
         self.output_mode: str = output_mode
@@ -22,7 +22,7 @@ class Handler:
 
     def set_level(self, *levels: str) -> None:
         """
-        Set what level of log will be output.
+        Set what level of log will be test_output.
 
         Args:
             levels: "INFO" represents running information, "WARNING" represents running warnings, and "ERROR" represents running errors. The default is all.
@@ -34,7 +34,7 @@ class Handler:
 
     def set_file(self, log_file: str) -> None:
         """
-        Set log output file.
+        Set log test_output file.
 
         Args:
              log_file: the log file

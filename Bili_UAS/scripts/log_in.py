@@ -1,5 +1,5 @@
 """
-Bili-UAS.scripts.log_in
+Bili_UAS.scripts.log_in
 
 This module provides the function to log in to Bilibili, save and read credentials.
 """
@@ -13,7 +13,7 @@ from bilibili_api.exceptions import (CredentialNoBiliJctException, CredentialNoS
 import sys
 import json
 import os
-from writer import log_writer as lw
+from Bili_UAS.writer import log_writer as lw
 import enum
 from typing import Union
 

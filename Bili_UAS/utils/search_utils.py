@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 from bilibili_api import search as bas
-from writer import log_writer as lw
+from Bili_UAS.writer import log_writer as lw
 import time
 
 

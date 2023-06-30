@@ -1,17 +1,17 @@
 """
-Bili-UAS.bili-login
+Bili_UAS.bili-login
 
 This module provides a command line interface for logining to bilibili.
 """
 
 
 from __future__ import annotations
-from scripts import log_in as sli, config as sc
+from Bili_UAS.scripts import log_in as sli, config as sc
 from bilibili_api import sync
 import os
 from typing import Literal, Union
 import tyro
-from writer import log_writer as lw, abnormal_monitor as am
+from Bili_UAS.writer import log_writer as lw, abnormal_monitor as am
 
 
 def sync_main(mode: Literal[1, 2, 3, 4] = 1,

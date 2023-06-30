@@ -1,17 +1,17 @@
 """
-Bili-UAS.bili-live
+Bili_UAS.bili-live
 
 This module provides a command line interface for monitoring the live broadcast room and processing data
 """
 
 
 from __future__ import annotations
-from utils import live_utils as lu, user_utils as uu
+from Bili_UAS.utils import live_utils as lu, user_utils as uu
 from typing import Union
-from writer import log_writer as lw, abnormal_monitor as am
+from Bili_UAS.writer import log_writer as lw, abnormal_monitor as am
 import os
 from bilibili_api import sync
-from scripts import config as sc, log_in as sli, live as sl
+from Bili_UAS.scripts import config as sc, log_in as sli, live as sl
 import tyro
 
 

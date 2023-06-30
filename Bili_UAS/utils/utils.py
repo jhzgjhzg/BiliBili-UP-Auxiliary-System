@@ -1,5 +1,5 @@
 """
-Bili-UAS.utils.utils
+Bili_UAS.utils.utils
 
 Some small classes, recording danmu, reply, and other information.
 """
