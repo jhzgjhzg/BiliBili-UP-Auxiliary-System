@@ -26,9 +26,11 @@ import numpy as np
 import scipy.interpolate as spi
 from typing import Union
 from numpy import typing as npt
+import jieba
+import wordcloud
 
 
-danmu_warning_mark: list[str] = ["@", "[", "]", "。", "?", "!", "，", ".", ","]
+danmu_warning_mark: list[str] = ["@", "。", "？", "！", "，", ".", "?", "!", ","]
 
 
 class BiliLiveMonitor(bal.LiveRoom, bal.LiveDanmaku):
@@ -882,6 +884,33 @@ class BiliLiveProcess(object):
         await self.__complete_danmu_frequency_analysis(interval, live_dir)
         await self.__marked_danmu_frequency_analysis(interval, live_dir)
 
+    async def __danmu_word_cloud(self, live_dir: str, mask: Union[npt.NDArray, None]) -> None:
+        """
+        Generate word cloud of danmu.
+
+        Args:
+            live_dir: directory for storing single live-streaming data
+            mask: mask for word cloud
+        """
+        if self.danmu:
+            self.log.info("Generating word cloud of complete danmu...")
+            danmu_content: str = ""
+            for elem in self.danmu:
+                danmu_content += elem.content
+                danmu_content += " "
+            words: list[str] = jieba.lcut(danmu_content)
+            word_freq = pd.Series(words).value_counts()
+            wc = wordcloud.WordCloud(font_path='PingFang.ttc', background_color='white', mask=mask)
+            wc.generate_from_frequencies(word_freq)
+            image = wc.to_image()
+            save_path: str = os.path.join(self.output_dir, "complete_danmu_word_cloud.jpg")
+            image.save(save_path, quality=100)
+            self.log.info(f"The word cloud image of complete danmu is generated and saved as {save_path}.")
+        else:
+            self.log.warning("There is no complete danmu data, and word cloud could not be generated!")
+            self.log.error(f"Please check that {os.path.join(live_dir, 'complete_danmu.xlsx')} "
+                           f"exists and is not empty.")
+
     async def __merge_revenue(self) -> None:
         """
         Merge the gift, sc, guard of live-streaming rooms.
@@ -1076,7 +1105,7 @@ class BiliLiveProcess(object):
             self.log.info(f"The analysis of popularity is completed, and the result graph is saved as {name}.")
 
     async def analysis(self, revenue_interval: float, danmu_interval: float, robust: bool,
-                       robust_interval: float) -> None:
+                       robust_interval: float, mask: Union[npt.NDArray, None]) -> None:
         """
         Analyze the live-streaming room.
 
@@ -1085,6 +1114,7 @@ class BiliLiveProcess(object):
             danmu_interval: the second interval for danmu analysis
             robust: whether to filter marked danmu
             robust_interval: the minute interval for filtering marked danmu
+            mask: the mask for word cloud
         """
         if self.work_dir:
             for live_dir in self.work_dir:
@@ -1095,5 +1125,6 @@ class BiliLiveProcess(object):
                 await self.__view_stat(live_dir)
                 await self.__danmu_frequency_analysis(danmu_interval, live_dir)
                 await self.__editing_suggestions()
+                await self.__danmu_word_cloud(live_dir, mask)
         else:
             self.log.warning("No unprocessed data!")

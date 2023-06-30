@@ -73,14 +73,14 @@ async def word_cloud(video_id: Union[str, int],
         await video.reply_robust_process()
         for elem in video.robust_replies:
             reply_content += elem.content
-            reply_content += "。"
+            reply_content += " "
 
         words: list[str] = jieba.lcut(reply_content)
         word_freq = pd.Series(words).value_counts()
         wc = wordcloud.WordCloud(font_path='PingFang.ttc', background_color='white', mask=mask)
         wc.generate_from_frequencies(word_freq)
         image = wc.to_image()
-        image.save(save_path, quality=90)
+        image.save(save_path, quality=100)
 
     elif mode == WordCloudContent.DANMU:
         save_path: str = os.path.join(video.work_dir, "danmu_word_cloud.jpg")
@@ -89,14 +89,14 @@ async def word_cloud(video_id: Union[str, int],
         await video.get_danmu()
         for elem in video.danmu:
             danmu_content += elem.content
-            danmu_content += "。"
+            danmu_content += " "
 
         words: list[str] = jieba.lcut(danmu_content)
         word_freq = pd.Series(words).value_counts()
         wc = wordcloud.WordCloud(font_path='PingFang.ttc', background_color='white', mask=mask)
         wc.generate_from_frequencies(word_freq)
         image = wc.to_image()
-        image.save(save_path, quality=90)
+        image.save(save_path, quality=100)
 
     else:
         save_path: str = os.path.join(video.work_dir, "reply_and_danmu_word_cloud.jpg")
@@ -107,17 +107,17 @@ async def word_cloud(video_id: Union[str, int],
         await video.get_danmu()
         for elem in video.robust_replies:
             content += elem.content
-            content += "。"
+            content += " "
         for elem in video.danmu:
             content += elem.content
-            content += "。"
+            content += " "
 
         words: list[str] = jieba.lcut(content)
         word_freq = pd.Series(words).value_counts()
         wc = wordcloud.WordCloud(font_path='PingFang.ttc', background_color='white', mask=mask)
         wc.generate_from_frequencies(word_freq)
         image = wc.to_image()
-        image.save(save_path, quality=90)
+        image.save(save_path, quality=100)
 
     log.info(f"Word cloud image generated successfully! Saved in {save_path}.")
 

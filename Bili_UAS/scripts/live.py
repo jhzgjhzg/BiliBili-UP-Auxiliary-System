@@ -37,6 +37,8 @@ class BiliLiveConfigAuto(object):
     """whether to filter marked danmu"""
     robust_interval: float = 5
     """time interval for filtering marked danmu, unit: minute"""
+    mask: Union[str, None] = None
+    """Mask for generating danmu word cloud image."""
     forever: bool = True
     """whether to long connect the live broadcast room"""
 
@@ -79,6 +81,8 @@ class BiliLiveConfigProcess(object):
     """whether to filter marked danmu"""
     robust_interval: float = 5
     """time interval for filtering marked danmu, unit: minute"""
+    mask: Union[str, None] = None
+    """Mask for generating danmu word cloud image."""
 
 
 mode_configs: dict[str, Union[BiliLiveConfigAuto, BiliLiveConfigMonitor, BiliLiveConfigProcess]] = {}

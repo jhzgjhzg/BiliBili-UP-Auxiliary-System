@@ -13,6 +13,8 @@ import os
 from bilibili_api import sync
 from Bili_UAS.scripts import config as sc, log_in as sli, live as sl
 import tyro
+import matplotlib.pyplot as plt
+from numpy import typing as npt
 
 
 def sync_tyro_main(config: Union[sl.BiliLiveConfigAuto, sl.BiliLiveConfigMonitor, sl.BiliLiveConfigProcess]) -> None:
@@ -62,17 +64,19 @@ def sync_tyro_main(config: Union[sl.BiliLiveConfigAuto, sl.BiliLiveConfigMonitor
         live_monitor = lu.BiliLiveMonitor(config.live_id, log_file, work_dir, config.max_retry,
                                           config.retry_after, credential)
         sync(live_monitor.load_danmu_mark())
+        mask: npt.NDArray = plt.imread(config.mask)
 
         sync(live_monitor.monitor(config.save_all_danmu, config.danmu_disconnect, config.auto_disconnect))
         live_process = lu.BiliLiveProcess(log_file, live_monitor.work_dir)
-        sync(live_process.analysis(config.revenue_interval, config.danmu_interval, config.robust, config.robust_interval))
+        sync(live_process.analysis(config.revenue_interval, config.danmu_interval, config.robust,
+                                   config.robust_interval, mask))
 
         while config.forever:
             log.warning("Long connecting live room. To exit the program, please use ctrl + c.")
             sync(live_monitor.monitor(config.save_all_danmu, config.danmu_disconnect, config.auto_disconnect))
             live_process = lu.BiliLiveProcess(log_file, live_monitor.work_dir)
             sync(live_process.analysis(config.revenue_interval, config.danmu_interval, config.robust,
-                                       config.robust_interval))
+                                       config.robust_interval, mask))
 
     elif isinstance(config, sl.BiliLiveConfigMonitor):
         log.warning("Set the mode to 'monitor', and in this mode, only data monitoring "
@@ -101,9 +105,10 @@ def sync_tyro_main(config: Union[sl.BiliLiveConfigAuto, sl.BiliLiveConfigMonitor
         if config.data_dir is None:
             raise am.ParameterInputError("No data folder specified!")
 
+        mask: npt.NDArray = plt.imread(config.mask)
         live_process = lu.BiliLiveProcess(log_file, config.data_dir)
         sync(live_process.analysis(config.revenue_interval, config.danmu_interval, config.robust,
-                                   config.robust_interval))
+                                   config.robust_interval, mask))
 
 
 def tyro_cli() -> None:
