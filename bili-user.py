@@ -7,26 +7,20 @@ This module provides a command line interface for collecting user information an
 
 from __future__ import annotations
 from utils import user_utils as uu
-from typing import Union, Literal
+from typing import Union
 from bilibili_api import sync, user as bau
 from writer import log_writer as lw, abnormal_monitor as am
 import os
-from scripts import config as sc, log_in as sli
+from scripts import config as sc, log_in as sli, user as su
 import tyro
 
 
-def sync_main(name: Union[str, None] = None,
-              uid: Union[int, None] = None,
-              mode: Literal["update", "address"] = "update",
-              amode: Literal["send", "receive"] = "send") -> None:
+def sync_tyro_main(config: Union[su.BiliUserConfigUpdate, su.BiliUserConfigAddress]) -> None:
     """
-    Update user fan number, guard number, charging number, and count guard addresses.
+    Main function for tyro command-line interface.
 
     Args:
-        name: username, either name or uid must be filled in
-        uid: user uid, either name or uid must be filled in
-        mode: action to be performed
-        amode: actions to be taken for address statistics
+        config: configuration
     """
     work_dir: str = sync(sc.load_work_dir_from_txt())
     log_output: str = os.path.join(work_dir, "test")
@@ -47,39 +41,43 @@ def sync_main(name: Union[str, None] = None,
     if credential is not None:
         credential = sync(sli.refresh_credential(credential, log_file))
 
-    if uid is None:
-        if name is None:
+    if config.name is None:
+        if config.uid is None:
             raise am.ParameterInputError("name and uid must be entered either!")
 
-    if uid is None:
+    if config.uid is None:
         try:
-            uid_info: dict = sync(bau.name2uid(name))
-            uid = uid_info['uid_list'][0]['uid']
+            uid_info: dict = sync(bau.name2uid(config.name))
+            config.uid = uid_info['uid_list'][0]['uid']
         except KeyError:
             log.error("Unable to query the uid of this user, the user may not exist or there may be "
                       "unresolved characters in the username!")
             log.warning("Please re-enter the username or directly enter the uid!")
             return
 
-    user = uu.BiliUser(uid, log=log_file, work_dir=work_dir, credential=credential)
+    user = uu.BiliUser(config.uid, log=log_file, work_dir=work_dir, credential=credential)
 
-    if mode == "update":
+    if isinstance(config, su.BiliUserConfigUpdate):
         sync(user.update_fans_number())
         sync(user.update_guard_number())
         sync(user.update_charge_number())
-
-    elif mode == "address":
-        if amode == "send":
+    else:
+        mode = su.AddressProcessType(config.mode)
+        if mode == su.AddressProcessType.SEND:
             sync(user.guard_address_stat_send())
-        else:
+        elif mode == su.AddressProcessType.RECEIVE:
             sync(user.guard_address_stat_receive())
 
 
 def tyro_cli() -> None:
     """
-    Command line interface
+    Tyro command line interface.
     """
-    tyro.cli(sync_main)
+    tyro.extras.set_accent_color("bright_yellow")
+    sync_tyro_main(
+        tyro.cli(su.UserConfigUnion, description="Update user fan number, guard number, "
+                                                 "charging number, and count guard addresses.")
+    )
 
 
 if __name__ == "__main__":

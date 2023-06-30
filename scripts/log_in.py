@@ -25,7 +25,7 @@ class LoginMode(enum.Enum):
     QR = 1
     PASSWORD = 2
     VERIFICATION = 3
-    PARM = 4
+    PARAMETER = 4
 
 
 async def load_credential_from_json(log_file: str) -> Union[Credential, None]:

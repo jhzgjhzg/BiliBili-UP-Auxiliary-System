@@ -49,7 +49,7 @@ def sync_main(mode: Literal[1, 2, 3, 4] = 1,
 
     m = sli.LoginMode(mode)
 
-    if m == sli.LoginMode.PARM:
+    if m == sli.LoginMode.PARAMETER:
         if sessdata is not None and bili_jct is not None and buvid3 is not None \
                 and dedeuserid is not None and ac_time_value is not None:
             pass
@@ -75,6 +75,7 @@ def tyro_cli() -> None:
     """
     Command line interface
     """
+    tyro.extras.set_accent_color("bright_yellow")
     tyro.cli(sync_main)
 
 

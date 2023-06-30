@@ -27,8 +27,6 @@ class BiliLiveConfigAuto(object):
     """the maximum number of reconnection attempts when the live broadcast room is unexpectedly disconnected"""
     retry_after: float = 1
     """time interval for trying to initiate a reconnection after accidental disconnection, unit: second"""
-    data_dir: Union[str, None] = None
-    """the file where the data is located"""
     revenue_interval: float = 5
     """time interval for revenue statistics, unit: minute"""
     danmu_interval: float = 30
