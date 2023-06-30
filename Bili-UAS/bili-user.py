@@ -23,7 +23,7 @@ def sync_tyro_main(config: Union[su.BiliUserConfigUpdate, su.BiliUserConfigAddre
         config: configuration
     """
     work_dir: str = sync(sc.load_work_dir_from_txt())
-    log_output: str = os.path.join(work_dir, "test")
+    log_output: str = os.path.join(work_dir, "../test")
     log_file: str = os.path.join(log_output, "user_log.txt")
 
     file_handler: lw.Handler = lw.Handler("file")
