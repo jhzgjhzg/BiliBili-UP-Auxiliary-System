@@ -89,5 +89,5 @@ In preparation...
 
 **Appreciate developer:**\
 If you think this module is good, you can give it a star or buy a cup of coffee for the developer：
-![Buy me a coffee](readme_dir/appreciation.jpg)
+![Buy me a coffee](https://github.com/jhzgjhzg/BiliBili-UP-Auxiliary-System/blob/main/readme_dir/appreciation.jpg)
 
