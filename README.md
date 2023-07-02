@@ -13,7 +13,7 @@ This module implements the following functions:
 - Send a private message to the guard to collect the address and collect the address information. (requires logging into the Bilibili account)
 - ...
 
-> **Warning!**\
+> **Warning**\
 > This module is only for learning and testing purposes.
 > Any consequences caused by unauthorized use of this module are not related to the developer.
 > If there is any infringement, please contact the developer to delete the relevant content.
