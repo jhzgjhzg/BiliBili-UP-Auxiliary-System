@@ -7,7 +7,7 @@ with open('requirements.txt', "r") as f:
     requirements = f.readlines()
 
 setup(
-    name='bili_uas',
+    name='bili-uas',
     version='0.1.0',
     license='GPLv3',
     author='jhzg',
@@ -30,7 +30,8 @@ setup(
               'Bili_UAS.writer',
               'Bili_UAS.scripts'],
     package_data={'': ['*.txt', '*.md', 'LICENSE', 'py.typed', 'setup.py'],
-                  'Bili_UAS': ['*.txt', '*.md', 'LICENSE', 'py.typed']},
+                  'Bili_UAS': ['*.txt', '*.md', 'LICENSE', 'py.typed'],
+                  'readme_dir': ['*.jpg']},
     include_package_data=True,
     python_requires='>=3.9',
     install_requires=requirements,

@@ -14,12 +14,12 @@ import tyro
 from Bili_UAS.writer import log_writer as lw, abnormal_monitor as am
 
 
-def sync_main(mode: Literal[1, 2, 3, 4] = 1,
-              sessdata: Union[str, None] = None,
-              bili_jct: Union[str, None] = None,
-              buvid3: Union[str, None] = None,
-              dedeuserid: Union[str, None] = None,
-              ac_time_value: Union[str, None] = None) -> None:
+def sync_tyro_main(mode: Literal[1, 2, 3, 4] = 1,
+                   sessdata: Union[str, None] = None,
+                   bili_jct: Union[str, None] = None,
+                   buvid3: Union[str, None] = None,
+                   dedeuserid: Union[str, None] = None,
+                   ac_time_value: Union[str, None] = None) -> None:
     """
     Login to Bilibili.
 
@@ -76,7 +76,7 @@ def tyro_cli() -> None:
     Command line interface
     """
     tyro.extras.set_accent_color("bright_yellow")
-    tyro.cli(sync_main)
+    tyro.cli(sync_tyro_main)
 
 
 if __name__ == "__main__":
