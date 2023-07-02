@@ -1,0 +1,14 @@
+requests~=2.31.0
+tqdm~=4.65.0
+asyncio~=3.4.3
+pandas~=2.0.2
+tyro~=0.5.3
+apscheduler~=3.10.1
+numpy~=1.24.3
+scipy~=1.10.1
+jieba~=0.42.1
+wordcloud~=1.9.1.1
+matplotlib~=3.7.1
+httpx~=0.24.1
+setuptools~=68.0.0
+bilibili-api-python~=15.5.1
