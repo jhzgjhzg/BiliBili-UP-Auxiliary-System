@@ -79,7 +79,7 @@ You can also implement it yourself and initiate a Pull request.
 F: You can fork this project and implement the feature you want to implement, and then initiate a Pull request to main.
 Contribution guidelines: [CONTRIBUTING.md](https://github.com/nemo2011/bilibili-api/blob/main/.github/CONTRIBUTING.md)
 
-# Development Documentation
+# Documentation
 In preparation...
 
 # Appendix
