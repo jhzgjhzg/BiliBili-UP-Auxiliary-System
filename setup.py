@@ -21,7 +21,7 @@ requirements = [
 
 setup(
     name='bili-uas',
-    version='0.1.2',
+    version='0.1.4',
     license='GPLv3',
     author='jhzg',
     author_email='jhzg02200059@163.com',
@@ -49,11 +49,11 @@ setup(
     install_requires=requirements,
     entry_points={
         'console_scripts': [
-            'bili-config = Bili_UAS.bili-config:tyro_cli',
-            'bili-live = Bili_UAS.bili-live:tyro_cli',
-            'bili-user = Bili_UAS.bili-user:tyro_cli',
-            'bili-video = Bili_UAS.bili-video:tyro_cli',
-            'bili-user = Bili_UAS.bili-user:tyro_cli'
+            'bili-config = Bili_UAS.bili_config:tyro_cli',
+            'bili-live = Bili_UAS.bili_live:tyro_cli',
+            'bili-login = Bili_UAS.bili_login:tyro_cli',
+            'bili-video = Bili_UAS.bili_video:tyro_cli',
+            'bili-user = Bili_UAS.bili_user:tyro_cli'
         ],
     }
 )

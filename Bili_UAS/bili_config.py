@@ -1,5 +1,5 @@
 """
-Bili_UAS.bili-config
+Bili_UAS.bili_config
 
 This module provides a command line interface for setting work paths and danmu marks.
 """
@@ -60,6 +60,7 @@ def tyro_cli() -> None:
     """
     Command line interface
     """
+    tyro.extras.set_accent_color("bright_yellow")
     tyro.cli(sync_tyro_main)
 
 

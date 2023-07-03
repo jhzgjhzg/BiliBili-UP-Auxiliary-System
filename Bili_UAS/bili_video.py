@@ -1,5 +1,5 @@
 """
-Bili_UAS.bili-video
+Bili_UAS.bili_video
 
 This module provides a command line interface for downloading videos, audio or generating word image.
 """

@@ -1,5 +1,5 @@
 """
-Bili_UAS.bili-live
+Bili_UAS.bili_live
 
 This module provides a command line interface for monitoring the live broadcast room and processing data
 """

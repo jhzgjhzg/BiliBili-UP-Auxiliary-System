@@ -1,5 +1,5 @@
 """
-Bili_UAS.bili-login
+Bili_UAS.bili_login
 
 This module provides a command line interface for logining to bilibili.
 """

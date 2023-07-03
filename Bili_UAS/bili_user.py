@@ -1,5 +1,5 @@
 """
-Bili_UAS.bili-user
+Bili_UAS.bili_user
 
 This module provides a command line interface for collecting user information and performing user operations.
 """
