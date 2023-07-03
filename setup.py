@@ -3,12 +3,25 @@ from setuptools import setup
 with open("README.md", "r") as f:
     long_description = f.read()
 
-with open('requirements.txt', "r") as f:
-    requirements = f.readlines()
+requirements = [
+    'bilibili-api-python~=15.5.1',
+    'setuptools~=68.0.0',
+    'wordcloud~=1.9.2',
+    'jieba~=0.42.1',
+    'scipy~=1.11.1',
+    'numpy~=1.25.0',
+    'tyro~=0.5.3',
+    'pandas~=2.0.3',
+    'tqdm~=4.65.0',
+    'matplotlib~=3.7.1',
+    'asyncio~=3.4.3',
+    'apscheduler~=3.10.1',
+    'requests~=2.31.0',
+    'httpx~=0.24.1']
 
 setup(
     name='bili-uas',
-    version='0.1.0',
+    version='0.1.1',
     license='GPLv3',
     author='jhzg',
     author_email='jhzg02200059@163.com',
@@ -29,9 +42,8 @@ setup(
               'Bili_UAS.utils',
               'Bili_UAS.writer',
               'Bili_UAS.scripts'],
-    package_data={'': ['*.txt', '*.md', 'LICENSE', 'py.typed', 'setup.py'],
-                  'Bili_UAS': ['*.txt', '*.md', 'LICENSE', 'py.typed'],
-                  'readme_dir': ['*.jpg']},
+    package_data={'': ['*.txt', '*.md', 'LICENSE', 'setup.py', 'requirements.txt', '.gitignore']},
+    exclude_package_data={'': ['test/*.py', 'test']},
     include_package_data=True,
     python_requires='>=3.9',
     install_requires=requirements,
