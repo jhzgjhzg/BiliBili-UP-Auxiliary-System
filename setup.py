@@ -29,7 +29,7 @@ setup(
     description='Assist up in personal, live, and video data analysis and prediction.',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    keywords=["BiliBili", "auxiliary", "analysis"],
+    keywords=["BiliBili", "auxiliary", "analysis", "live", "video", "word_cloud"],
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
