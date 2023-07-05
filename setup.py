@@ -1,6 +1,6 @@
 from setuptools import setup
 
-with open("README.md", "r") as f:
+with open("README.md", "r", encoding="utf-8") as f:
     long_description = f.read()
 
 requirements = [
@@ -21,7 +21,7 @@ requirements = [
 
 setup(
     name='bili-uas',
-    version='0.1.4',
+    version='0.1.5',
     license='GPLv3',
     author='jhzg',
     author_email='jhzg02200059@163.com',
