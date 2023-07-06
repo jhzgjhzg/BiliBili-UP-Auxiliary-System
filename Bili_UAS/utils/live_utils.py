@@ -1078,7 +1078,7 @@ class BiliLiveProcess(object):
             live_dir: directory for storing single live-streaming data
         """
         await self.__revenue_stat_by_time(interval, live_dir)
-        # await self._revenue_stat_by_price()
+        # await self._revenue_stat_by_price()  # TODO: Waiting for interface modification of bilibili-api-python
         await self.__revenue_stat_by_type()
 
     async def __view_stat(self, live_dir: str) -> None:
