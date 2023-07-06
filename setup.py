@@ -21,7 +21,7 @@ requirements = [
 
 setup(
     name='bili-uas',
-    version='0.1.5',
+    version='0.1.6',
     license='GPLv3',
     author='jhzg',
     author_email='jhzg02200059@163.com',
