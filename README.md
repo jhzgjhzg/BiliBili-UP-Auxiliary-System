@@ -89,5 +89,5 @@ In preparation...
 
 **Appreciate developer:**\
 If you think this module is good, you can give it a star or buy a cup of coffee for the developer：
-<img alt="Buy me a coffee" height="300" src="https://github.com/jhzgjhzg/BiliBili-UP-Auxiliary-System/blob/main/readme_dir/appreciation.jpg" width="300"/>
+<img alt="Buy me a coffee" height="300" src="https://github.com/jhzgjhzg/BiliBili-UP-Auxiliary-System/blob/main/design/appreciation.jpg" width="300"/>
 
