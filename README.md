@@ -1,7 +1,7 @@
 # BiliBili-UP-Auxiliary-System
 
 # Introduction
-Assist users in recording and analyzing live-streaming data for video data prediction.\
+Assist Bilibili users in recording and analyzing live streaming data and video data.\
 This module implements the following functions:
 - Monitor the data of the live broadcast room.
 - Analyze and process live-streaming room data, generate various analysis graphs, and provide suggestions for 
@@ -25,7 +25,7 @@ This module depends on Python, so you need to install Python on your computer fi
 Recommend using Miniconda to manage Python environments.\
 [Windows Installation Miniconda Guide](https://blog.csdn.net/weixin_43828245/article/details/124768518) \
 [macOS Installation Miniconda Guide](https://blog.csdn.net/tangsiqi130/article/details/130112475)
-> Recommended to use version 3.8 and above of Python, and lower versions have not been tested!
+> Recommended to use version 3.9 and above of Python, and lower versions have not been tested!
 
 ### Install module
 After installing Miniconda, you can use the following command to install the module:
