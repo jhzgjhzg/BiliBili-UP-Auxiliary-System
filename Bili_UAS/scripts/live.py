@@ -38,7 +38,7 @@ class BiliLiveConfigAuto(object):
     robust_interval: float = 5
     """time interval for filtering marked danmu, unit: minute"""
     mask: Union[str, None] = None
-    """Mask for generating danmu word cloud image."""
+    """mask for generating danmu word cloud image"""
     forever: bool = True
     """whether to long connect the live broadcast room"""
 

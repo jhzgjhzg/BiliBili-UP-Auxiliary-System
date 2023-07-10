@@ -17,11 +17,12 @@ requirements = [
     'asyncio~=3.4.3',
     'apscheduler~=3.10.1',
     'requests~=2.31.0',
-    'httpx~=0.24.1']
+    'httpx~=0.24.1',
+    'openpyxl~=3.1.2']
 
 setup(
     name='bili-uas',
-    version='0.1.6',
+    version='0.1.10',
     license='GPLv3',
     author='jhzg',
     author_email='jhzg02200059@163.com',

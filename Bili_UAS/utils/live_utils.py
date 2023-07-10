@@ -481,6 +481,8 @@ class BiliLiveProcess(object):
         dir_name: str = os.path.split(work_dir)[-1]
         if not dir_name.isdigit():
             self.work_dir.append(os.path.abspath(work_dir))
+            temp: str = os.path.split(os.path.abspath(work_dir))[0]
+            self.todo_txt_file: str = os.path.join(temp, ".todo.txt")
             if os.path.exists(self.todo_txt_file):
                 todo_list: list[str] = []
                 with open(self.todo_txt_file, "r") as f:

@@ -47,7 +47,10 @@ def sync_tyro_main(config: Union[sv.BiliVideoConfigWordCloud, sv.BiliVideoConfig
         if config.video_id is None:
             raise am.ParameterInputError("Video ID not entered!")
         wm = sv.WordCloudContent(config.mode)
-        word_cloud_mask: npt.NDArray = plt.imread(config.mask)
+        if config.mask is not None:
+            word_cloud_mask: npt.NDArray = plt.imread(config.mask)
+        else:
+            word_cloud_mask = None
         sync(sv.word_cloud(config.video_id, credential, wm, config.sec, word_cloud_mask, log_file, work_dir))
     else:
         if config.video_id is None:

@@ -24,7 +24,6 @@ def sync_tyro_main(config: Union[sl.BiliLiveConfigAuto, sl.BiliLiveConfigMonitor
     Args:
         config: configuration
     """
-    print(config.auto_disconnect)
     work_dir: str = sync(sc.load_work_dir_from_txt())
     log_output: str = os.path.join(work_dir, "log")
     log_file: str = os.path.join(log_output, "live_log.txt")
@@ -105,7 +104,10 @@ def sync_tyro_main(config: Union[sl.BiliLiveConfigAuto, sl.BiliLiveConfigMonitor
         if config.data_dir is None:
             raise am.ParameterInputError("No data folder specified!")
 
-        mask: npt.NDArray = plt.imread(config.mask)
+        if config.mask is not None:
+            mask: npt.NDArray = plt.imread(config.mask)
+        else:
+            mask = None
         live_process = lu.BiliLiveProcess(log_file, config.data_dir)
         sync(live_process.analysis(config.revenue_interval, config.danmu_interval, config.robust,
                                    config.robust_interval, mask))
