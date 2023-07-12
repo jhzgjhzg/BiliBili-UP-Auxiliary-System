@@ -9,7 +9,7 @@ description: >
 version:          1.0
 gitbook_version:  3.2.3
 
-url:              'https://jhzgjhzg.github.io/'
+url:              'https://jhzgjhzg.github.io'
 baseurl:          '/BiliBili-UP-Auxiliary-System/docs'
 rss:              RSS
 
