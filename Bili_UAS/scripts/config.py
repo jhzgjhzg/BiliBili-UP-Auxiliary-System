@@ -6,7 +6,7 @@ This module provides the function to save and read working path and danmu mark.
 
 
 from __future__ import annotations
-from Bili_UAS.writer import abnormal_monitor as am
+from Bili_UAS.writer import abnormal_monitor as am, log_writer as lw
 import os
 
 
@@ -54,28 +54,44 @@ async def load_work_dir_from_txt() -> str:
         return work_dir
 
 
-async def save_danmu_mark_to_txt(danmu_mark: list[str]) -> None:
+async def save_danmu_mark_to_txt(danmu_mark: list[str], log: lw.Logger) -> None:
     """
     Save danmu mark to file.
 
     Args:
         danmu_mark: danmu mark list
+        log: logger
     """
     danmu_mark_file: str = ".danmu_mark.txt"
     with open(danmu_mark_file, "w") as f:
         for mark in danmu_mark:
             f.write(mark + "\n")
-    print("Danmu mark saved successfully.")
+    log.info("Danmu mark saved successfully.")
 
 
-async def save_ffmpeg_path_to_txt(ffmpeg_path: str) -> None:
+async def save_ffmpeg_path_to_txt(ffmpeg_path: str, log: lw.Logger) -> None:
     """
     Save ffmpeg path to file.
 
     Args:
         ffmpeg_path: the path of ffmpeg
+        log: logger
     """
     ffmpeg_file: str = ".ffmpeg.txt"
     with open(ffmpeg_file, "w") as f:
         f.write(ffmpeg_path + "\n")
-    print("Ffmpeg path saved successfully.")
+    log.info("Ffmpeg path saved successfully.")
+
+
+async def save_language_to_txt(language: str, log: lw.Logger) -> None:
+    """
+    Save language to file.
+
+    Args:
+        language: the language of program prompts
+        log: logger
+    """
+    language_file: str = ".language.txt"
+    with open(language_file, "w") as f:
+        f.write(language + "\n")
+    log.info("Language configuration saved successfully.")

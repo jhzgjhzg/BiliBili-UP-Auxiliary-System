@@ -8,7 +8,7 @@ This module provides a command line interface for setting work paths and danmu m
 from __future__ import annotations
 from Bili_UAS.scripts import config as sc
 import tyro
-from typing import Union
+from typing import Union, Literal
 import os
 from bilibili_api import sync
 from Bili_UAS.writer import log_writer as lw
@@ -16,14 +16,16 @@ from Bili_UAS.writer import log_writer as lw
 
 def sync_tyro_main(work_dir: str,
                    ffmpeg: Union[str, None] = None,
-                   mark: Union[str, None] = None) -> None:
+                   mark: Union[str, None] = None,
+                   language: Literal["en", "ch"] = "en") -> None:
     """
-    Set working path, ffmpeg path and danmu mark.
+    Set working path, ffmpeg path, language and danmu mark.
 
     Args:
-        work_dir: working directory of program test_output
+        work_dir: working directory of program
         ffmpeg: the ffmpeg path in your computer
-        mark: mark for marking live danmu, multiple marks need to be entered consecutively
+        mark: mark for marking live danmu, multiple marks need to be entered consecutive
+        language: the language for program prompts
     """
     if not os.path.exists(work_dir):
         os.makedirs(work_dir, exist_ok=True)
@@ -45,15 +47,17 @@ def sync_tyro_main(work_dir: str,
     log.add_config(sys_handler)
 
     if ffmpeg is not None:
-        sync(sc.save_ffmpeg_path_to_txt(ffmpeg))
+        sync(sc.save_ffmpeg_path_to_txt(ffmpeg, log))
     else:
         log.warning("No ffmpeg path specified, video cannot be downloaded.")
 
     if mark is not None:
         mark_list: list[str] = [m for m in mark]
-        sync(sc.save_danmu_mark_to_txt(mark_list))
+        sync(sc.save_danmu_mark_to_txt(mark_list, log))
     else:
         log.warning("No danmu mark specified.")
+
+    sync(sc.save_language_to_txt(language, log))
 
 
 def tyro_cli() -> None:
