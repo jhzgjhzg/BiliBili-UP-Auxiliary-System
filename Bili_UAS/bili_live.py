@@ -26,6 +26,7 @@ def sync_tyro_main(config: Union[clc.BiliLiveConfigAuto, clc.BiliLiveConfigMonit
     Args:
         config: configuration
     """
+    language: str = ucu.load_language_from_txt()
     work_dir: str = sync(ucu.load_work_dir_from_txt())
     log_output: str = os.path.join(work_dir, "log")
     log_file: str = os.path.join(log_output, "live_log.txt")
@@ -46,9 +47,13 @@ def sync_tyro_main(config: Union[clc.BiliLiveConfigAuto, clc.BiliLiveConfigMonit
         credential = sync(sli.refresh_credential(credential, log_file))
 
     if isinstance(config, clc.BiliLiveConfigAuto):
-        log.warning("The setting mode is 'auto', and in this mode, 'auto_disconnect', 'danmu_disconnect', and "
-                    "'robust' are set to true, and data processing is automatically performed after disconnecting "
-                    "the live streaming connection!")
+        if language == "en":
+            log.warning("The setting mode is 'auto', and in this mode, 'auto_disconnect', 'danmu_disconnect', and "
+                        "'robust' are set to true, and data processing is automatically performed after disconnecting "
+                        "the live streaming connection!")
+        else:
+            log.warning("设置模式为 'auto'，在此模式下，'auto_disconnect'、'danmu_disconnect'、'robust' 被设置为True，"
+                        "且在断开直播连接后自动进行数据处理！")
 
         config.auto_disconnect = True
         config.danmu_disconnect = True
@@ -56,7 +61,10 @@ def sync_tyro_main(config: Union[clc.BiliLiveConfigAuto, clc.BiliLiveConfigMonit
 
         if config.user_id is None:
             if config.live_id is None:
-                raise wam.ParameterInputError("user_id and live_id must be entered either!")
+                if language == "en":
+                    raise wam.ParameterInputError("user_id and live_id must be entered either!")
+                else:
+                    raise wam.ParameterInputError("user_id 和 live_id 必须输入其中之一！")
 
         if config.user_id is not None:
             user = uuu.BiliUser(uid=config.user_id, log=log_file, work_dir=work_dir, credential=credential)
@@ -73,19 +81,28 @@ def sync_tyro_main(config: Union[clc.BiliLiveConfigAuto, clc.BiliLiveConfigMonit
                                    config.robust_interval, mask))
 
         while config.forever:
-            log.warning("Long connecting live room. To exit the program, please use ctrl + c.")
+            if language == "en":
+                log.warning("Long connecting live room. To exit the program, please use ctrl + c.")
+            else:
+                log.warning("设置为长连直播间，要退出程序，请使用ctrl + c。")
             sync(live_monitor.monitor(config.save_all_danmu, config.danmu_disconnect, config.auto_disconnect))
             live_process = ulu.BiliLiveProcess(log_file, live_monitor.work_dir)
             sync(live_process.analysis(config.revenue_interval, config.danmu_interval, config.robust,
                                        config.robust_interval, mask))
 
     elif isinstance(config, clc.BiliLiveConfigMonitor):
-        log.warning("Set the mode to 'monitor', and in this mode, only data monitoring "
-                    "will be performed without data processing!")
+        if language == "en":
+            log.warning("Set the mode to 'monitor', and in this mode, only data monitoring "
+                        "will be performed without data processing!")
+        else:
+            log.warning("设置模式为 'monitor'，在此模式下，只进行数据监控，不进行数据处理！")
 
         if config.user_id is None:
             if config.live_id is None:
-                raise wam.ParameterInputError("user_id and live_id must be entered either!")
+                if language == "en":
+                    raise wam.ParameterInputError("user_id and live_id must be entered either!")
+                else:
+                    raise wam.ParameterInputError("user_id 和 live_id 必须输入其中之一！")
 
         if config.user_id is not None:
             user = uuu.BiliUser(uid=config.user_id, log=log_file, work_dir=work_dir, credential=credential)
@@ -97,14 +114,23 @@ def sync_tyro_main(config: Union[clc.BiliLiveConfigAuto, clc.BiliLiveConfigMonit
 
         sync(live_monitor.monitor(config.save_all_danmu, config.danmu_disconnect, config.auto_disconnect))
         while config.forever:
-            log.warning("Long connecting live room. To exit the program, please use ctrl + c.")
+            if language == "en":
+                log.warning("Long connecting live room. To exit the program, please use ctrl + c.")
+            else:
+                log.warning("设置为长连直播间，要退出程序，请使用ctrl + c。")
             sync(live_monitor.monitor(config.save_all_danmu, config.danmu_disconnect, config.auto_disconnect))
 
     elif isinstance(config, clc.BiliLiveConfigProcess):
-        log.warning("Set the mode to 'process', and in this mode, a data folder needs to be specified!")
+        if language == "en":
+            log.warning("Set the mode to 'process', and in this mode, a data folder needs to be specified!")
+        else:
+            log.warning("设置模式为 'process'，在此模式下，需要指定一个数据文件夹！")
 
         if config.data_dir is None:
-            raise wam.ParameterInputError("No data folder specified!")
+            if language == "en":
+                raise wam.ParameterInputError("No data folder specified!")
+            else:
+                raise wam.ParameterInputError("没有指定数据文件夹！")
 
         if config.mask is not None:
             mask: npt.NDArray = plt.imread(config.mask)

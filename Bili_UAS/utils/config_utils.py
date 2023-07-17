@@ -22,9 +22,9 @@ def load_language_from_txt() -> str:
         with open(config_file, "r") as f:
             language: str = f.readline().removesuffix("\n")
         if language == "en":
-            print("Historical language found, using historical language.")
+            print("INFO: Historical language found, using historical language.")
         else:
-            print("找到历史语言设置, 使用历史语言.")
+            print("INFO: 找到历史语言设置, 使用历史语言.")
         return language
 
 

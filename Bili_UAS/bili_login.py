@@ -33,6 +33,7 @@ def sync_tyro_main(mode: Literal[1, 2, 3, 4] = 1,
         dedeuserid: credential dedeuserid
         ac_time_value: credential ac_time_value
     """
+    language: str = ucu.load_language_from_txt()
     work_dir: str = sync(ucu.load_work_dir_from_txt())
     log_output: str = os.path.join(work_dir, "log")
     log_file: str = os.path.join(log_output, "login_log.txt")
@@ -55,8 +56,11 @@ def sync_tyro_main(mode: Literal[1, 2, 3, 4] = 1,
                 and dedeuserid is not None and ac_time_value is not None:
             pass
         else:
-            raise wam.ParameterInputError("Select the login method with the specified parameters,"
-                                          "but the input parameters are missing!")
+            if language == "en":
+                raise wam.ParameterInputError("Select the login method with the specified parameters,"
+                                              "but the input parameters are missing!")
+            else:
+                raise wam.ParameterInputError("选择指定参数登录方式，但输入参数缺失！")
 
     if m == sli.LoginMode.QR:
         flag = sync(sli.log_in_by_QR_code(log_file))
@@ -69,7 +73,10 @@ def sync_tyro_main(mode: Literal[1, 2, 3, 4] = 1,
                                                         dedeuserid, ac_time_value, log_file))
 
     if not flag:
-        log.error("Login failed, please try logging in again! (priority is to scan QR code or specify parameters)")
+        if language == "en":
+            log.error("Login failed, please try logging in again! (priority is to scan QR code or specify parameters)")
+        else:
+            log.error("登录失败，请重试登录！（优先扫描二维码或指定参数）")
 
 
 def tyro_cli() -> None:

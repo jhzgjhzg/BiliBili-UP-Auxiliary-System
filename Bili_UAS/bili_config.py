@@ -30,7 +30,7 @@ def sync_tyro_main(work_dir: str,
     """
     if not os.path.exists(work_dir):
         os.makedirs(work_dir, exist_ok=True)
-    sync(sc.save_work_dir_to_txt(work_dir))
+    sync(sc.save_work_dir_to_txt(work_dir, language))
 
     work_dir: str = sync(ucu.load_work_dir_from_txt())
     log_output: str = os.path.join(work_dir, "log")
@@ -48,17 +48,23 @@ def sync_tyro_main(work_dir: str,
     log.add_config(sys_handler)
 
     if ffmpeg is not None:
-        sync(sc.save_ffmpeg_path_to_txt(ffmpeg, log))
+        sync(sc.save_ffmpeg_path_to_txt(ffmpeg, language))
     else:
-        log.warning("No ffmpeg path specified, video cannot be downloaded.")
+        if language == "en":
+            log.warning("No ffmpeg path specified, video cannot be downloaded.")
+        else:
+            log.warning("未指定ffmpeg路径，将无法下载视频。")
 
     if mark is not None:
         mark_list: list[str] = [m for m in mark]
-        sync(sc.save_danmu_mark_to_txt(mark_list, log))
+        sync(sc.save_danmu_mark_to_txt(mark_list, language))
     else:
-        log.warning("No danmu mark specified.")
+        if language == "en":
+            log.warning("No danmu mark specified.")
+        else:
+            log.warning("未指定弹幕标记。")
 
-    sync(sc.save_language_to_txt(language, log))
+    sync(sc.save_language_to_txt(language))
 
 
 def tyro_cli() -> None:
