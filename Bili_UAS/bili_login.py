@@ -6,12 +6,13 @@ This module provides a command line interface for logining to bilibili.
 
 
 from __future__ import annotations
-from Bili_UAS.scripts import log_in as sli, config as sc
+from Bili_UAS.utils import config_utils as ucu
+from Bili_UAS.scripts import log_in as sli
 from bilibili_api import sync
 import os
 from typing import Literal, Union
 import tyro
-from Bili_UAS.writer import log_writer as lw, abnormal_monitor as am
+from Bili_UAS.writer import log_writer as wlw, abnormal_monitor as wam
 
 
 def sync_tyro_main(mode: Literal[1, 2, 3, 4] = 1,
@@ -32,18 +33,18 @@ def sync_tyro_main(mode: Literal[1, 2, 3, 4] = 1,
         dedeuserid: credential dedeuserid
         ac_time_value: credential ac_time_value
     """
-    work_dir: str = sync(sc.load_work_dir_from_txt())
+    work_dir: str = sync(ucu.load_work_dir_from_txt())
     log_output: str = os.path.join(work_dir, "log")
     log_file: str = os.path.join(log_output, "login_log.txt")
 
-    file_handler: lw.Handler = lw.Handler("file")
+    file_handler: wlw.Handler = wlw.Handler("file")
     file_handler.set_level("WARNING", "ERROR")
     file_handler.set_file(log_file)
 
-    sys_handler: lw.Handler = lw.Handler("sys")
+    sys_handler: wlw.Handler = wlw.Handler("sys")
     sys_handler.set_level("INFO", "WARNING", "ERROR")
 
-    log: lw.Logger = lw.Logger()
+    log: wlw.Logger = wlw.Logger()
     log.add_config(file_handler)
     log.add_config(sys_handler)
 
@@ -54,8 +55,8 @@ def sync_tyro_main(mode: Literal[1, 2, 3, 4] = 1,
                 and dedeuserid is not None and ac_time_value is not None:
             pass
         else:
-            raise am.ParameterInputError("Select the login method with the specified parameters,"
-                                         "but the input parameters are missing!")
+            raise wam.ParameterInputError("Select the login method with the specified parameters,"
+                                          "but the input parameters are missing!")
 
     if m == sli.LoginMode.QR:
         flag = sync(sli.log_in_by_QR_code(log_file))

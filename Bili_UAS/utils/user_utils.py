@@ -12,8 +12,10 @@ This module provides the BiliUser class, which is used to get user information a
 
 
 from __future__ import annotations
+import enum
 from bilibili_api import user as bau, live as bal, sync
-from Bili_UAS.writer import log_writer as lw
+from .config_utils import load_language_from_txt
+from Bili_UAS.writer import log_writer as wlw
 from bilibili_api import Credential, session
 import os
 import time
@@ -22,6 +24,17 @@ from bilibili_api.exceptions import (CredentialNoBiliJctException, CredentialNoS
 import pandas as pd
 from pandas import DataFrame
 from typing import Union
+
+
+language: str = load_language_from_txt()
+
+
+class AddressProcessType(enum.Enum):
+    """
+
+    """
+    SEND = 1
+    RECEIVE = 2
 
 
 async def _address_mag_simple_check(msg: list[str]) -> bool:
@@ -60,7 +73,7 @@ class BiliUser(bau.User, bal.LiveRoom):
             credential: logon credentials
         """
         self.log_file: str = log
-        self.log: Union[lw.Logger, None] = None
+        self.log: Union[wlw.Logger, None] = None
         self.__set_log()
 
         bau.User.__init__(self, uid, credential)
@@ -85,14 +98,14 @@ class BiliUser(bau.User, bal.LiveRoom):
         """
         Set up logs.
         """
-        file_handler: lw.Handler = lw.Handler("file")
+        file_handler: wlw.Handler = wlw.Handler("file")
         file_handler.set_level("WARNING", "ERROR")
         file_handler.set_file(self.log_file)
 
-        sys_handler: lw.Handler = lw.Handler("sys")
+        sys_handler: wlw.Handler = wlw.Handler("sys")
         sys_handler.set_level("INFO", "WARNING")
 
-        self.log: lw.Logger = lw.Logger()
+        self.log: wlw.Logger = wlw.Logger()
         self.log.add_config(file_handler)
         self.log.add_config(sys_handler)
 
@@ -117,7 +130,10 @@ class BiliUser(bau.User, bal.LiveRoom):
         """
         live_info: dict = sync(self.get_live_info())
         if live_info['live_room'] is None:
-            self.log.warning("The user has not opened a live streaming room!")
+            if language == "en":
+                self.log.warning("The user has not opened a live streaming room!")
+            else:
+                self.log.warning("用户未开通直播间！")
             return
         self.room_id = live_info['live_room']['roomid']
         bal.LiveRoom.__init__(self, self.room_id, self.credential)
@@ -132,25 +148,37 @@ class BiliUser(bau.User, bal.LiveRoom):
         try:
             await self.credential.raise_for_no_sessdata()
         except CredentialNoSessdataException:
-            self.log.warning("Credential missing SESSDATA!")
+            if language == "en":
+                self.log.warning("Credential missing SESSDATA!")
+            else:
+                self.log.warning("登录信息缺少SESSDATA！")
             return False
 
         try:
             await self.credential.raise_for_no_bili_jct()
         except CredentialNoBiliJctException:
-            self.log.warning("Credential missing bili_jct!")
+            if language == "en":
+                self.log.warning("Credential missing bili_jct!")
+            else:
+                self.log.warning("登录信息缺少bili_jct！")
             return False
 
         try:
             await self.credential.raise_for_no_buvid3()
         except CredentialNoBuvid3Exception:
-            self.log.warning("Credential missing buvid3!")
+            if language == "en":
+                self.log.warning("Credential missing buvid3!")
+            else:
+                self.log.warning("登录信息缺少buvid3！")
             return False
 
         try:
             await self.credential.raise_for_no_dedeuserid()
         except CredentialNoDedeUserIDException:
-            self.log.warning("Credential missing DedeUserID!")
+            if language == "en":
+                self.log.warning("Credential missing DedeUserID!")
+            else:
+                self.log.warning("登录信息缺少DedeUserID！")
             return False
 
         return True
@@ -185,49 +213,66 @@ class BiliUser(bau.User, bal.LiveRoom):
             with open(self.address_unreceived_txt_file, "a") as f:
                 f.write("uid,bili_name\n\n")
 
+    @wlw.async_separate()
     async def get_upload_videos(self):
         """
         Get all videos uploaded by this user.
         """
-        self.log.info(f"Start getting all videos uploaded by user {self.uid}...")
+        if language == "en":
+            self.log.info(f"Start getting all videos uploaded by user {self.uid}...")
+        else:
+            self.log.info(f"开始获取用户 {self.uid} 上传的所有视频...")
         page: int = 1
         count: int = 0
         while True:
             video_data: dict = await self.get_videos(pn=page)
-            if video_data:
-                if video_data['list']['vlist']:
-                    for video in video_data['list']['vlist']:
-                        self.video_id.append(video['bvid'])
-                        count += 1
-                else:
-                    break
-                if count >= video_data['page']['count']:
-                    break
-                page += 1
+            if video_data['list']['vlist']:
+                for video in video_data['list']['vlist']:
+                    self.video_id.append(video['bvid'])
+                    count += 1
             else:
                 break
-        self.log.info(f"A total of {len(self.video_id)} videos were obtained.")
+            if count >= video_data['page']['count']:
+                break
+            page += 1
+        if language == "en":
+            self.log.info(f"A total of {len(self.video_id)} videos were obtained.")
+        else:
+            self.log.info(f"共获取到 {len(self.video_id)} 个视频。")
 
+    @wlw.async_separate()
     async def update_fans_number(self) -> None:
         """
         Update the number of fans.
         """
         now_time: int = int(time.time())
+        if language == "en":
+            self.log.info(f"Start getting the number of fans of user {self.uid}...")
+        else:
+            self.log.info(f"开始获取用户 {self.uid} 的粉丝数...")
         relation_info: dict = await self.get_relation_info()
-        if relation_info:
-            fans_num = relation_info['follower']
+        fans_num = relation_info['follower']
+        if fans_num:
             with open(self.fans_num_txt_file, "a") as f:
                 f.write(f"{time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime(now_time))},{fans_num}\n")
         else:
-            self.log.warning("Failed to update fans number!")
+            if language == "en":
+                self.log.warning("Failed to get the number of fans!")
+            else:
+                self.log.warning("获取粉丝数失败！")
 
+    @wlw.async_separate()
     async def update_guard_number(self) -> None:
         """
         Update the number of guards.
         """
         now_time: int = int(time.time())
+        if language == "en":
+            self.log.info(f"Start getting the number of guards of user {self.uid}...")
+        else:
+            self.log.info(f"开始获取用户 {self.uid} 的舰长数...")
         guard_info: dict = await self.get_dahanghai(page=1)
-        total_page: int = guard_info['info']['page']
+        total_page: int = guard_info['info']['page']  # TODO: need to check guard_info is not empty
         guard_num: int = guard_info['info']['num']
         governor_num: int = 0
         supervisor_num: int = 0
@@ -255,26 +300,35 @@ class BiliUser(bau.User, bal.LiveRoom):
             f.write(f"{time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime(now_time))},{guard_num},{governor_num},"
                     f"{supervisor_num},{captain_num}\n")
 
+    @wlw.async_separate()
     async def update_charge_number(self) -> None:
         """
         Update the number of charges.
         """
         now_time: int = int(time.time())
-        charge_info: dict = await self.get_elec_user_monthly()
-        if charge_info:
-            charge_num: int = charge_info['total_count']
-            with open(self.charge_num_txt_file, "a") as f:
-                f.write(f"{time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime(now_time))},{charge_num}\n")
+        if language == "en":
+            self.log.info(f"Start getting the number of charging member of user {self.uid}...")
         else:
-            self.log.warning("Failed to update charge number!")
+            self.log.info(f"开始获取用户 {self.uid} 的充电人数...")
+        charge_info: dict = await self.get_elec_user_monthly()
+        charge_num: int = charge_info['total_count']
+        with open(self.charge_num_txt_file, "a") as f:
+            f.write(f"{time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime(now_time))},{charge_num}\n")
 
+    @wlw.async_separate()
     async def guard_address_stat_send(self) -> None:
         """
         Send address statistics to the guard.
         """
-        self.log.info(f"Start sending address statistics to the guard...")
+        if language == "en":
+            self.log.info(f"Start sending address statistics to the guard...")
+        else:
+            self.log.info(f"开始向舰长发送地址统计信息...")
         if not await self.__check_credentials():
-            self.log.warning("Credential error, unable to perform address statistics!")
+            if language == "en":
+                self.log.warning("Credential error, unable to perform address statistics!")
+            else:
+                self.log.warning("登录信息错误，无法进行地址统计！")
             return
 
         msg: str = "请按以下顺序输入地址信息：收件人，电话，地址。每项之间换行。示例：\n收件人：图图\n电话：123456\n地址：翻斗花园"
@@ -284,24 +338,34 @@ class BiliUser(bau.User, bal.LiveRoom):
             target_uid: int = elem['uid']
             await session.send_msg(self.credential, target_uid, "1", msg)
         for i in range(1, total_page + 1):
-            guard_info: dict = await self.get_dahanghai(page=i)
+            guard_info: dict = await self.get_dahanghai(page=i)  # TODO: need to check guard_info is not empty
             for elem in guard_info['list']:
                 target_uid: int = elem['uid']
                 await session.send_msg(self.credential, target_uid, "1", msg)
-        self.log.info(f"Send successfully.")
+        if language == "en":
+            self.log.info(f"Send successfully.")
+        else:
+            self.log.info(f"发送成功。")
 
+    @wlw.async_separate()
     async def guard_address_stat_receive(self) -> None:
         """
         Receive address statistics from the guard.
         """
-        self.log.info("Start receiving address statistics to the guard")
+        if language == "en":
+            self.log.info("Start receiving address statistics to the guard")
+        else:
+            self.log.info("开始接收舰长的地址统计信息")
         if not await self.__check_credentials():
-            self.log.warning("Credential error, unable to receive address statistics!")
+            if language == "en":
+                self.log.warning("Credential error, unable to receive address statistics!")
+            else:
+                self.log.warning("登录信息错误，无法接收地址信息！")
             return
 
         receive_flag: bool = False
         count: int = 0
-        guard_info: dict = await self.get_dahanghai(page=1)
+        guard_info: dict = await self.get_dahanghai(page=1)  # TODO: need to check guard_info is not empty
         total_page: int = guard_info['info']['page']
         guard_num: int = guard_info['info']['num']
         for elem in guard_info['top3']:
@@ -357,8 +421,15 @@ class BiliUser(bau.User, bal.LiveRoom):
                         f.write(f"{target_uid},{target_name}\n")
                 receive_flag = False
         if count == guard_num:
-            self.log.info(f"Receive successfully. All addresses have been received, but may still contain invalid "
-                          f"addresses that require manual inspection.")
+            if language == "en":
+                self.log.info(f"Receive successfully. All addresses have been received, but may still contain invalid "
+                              f"addresses that require manual inspection.")
+            else:
+                self.log.info(f"接收成功。已经接收到所有地址，但仍可能需要人工检查是否含有无效地址。")
         else:
-            self.log.warning(f"Receive successfully. But only {count} address messages were received in total. "
-                             f"Guard whose address is not receives are recorded in {self.address_unreceived_txt_file}.")
+            if language == "en":
+                self.log.warning(f"Receive successfully. But only {count} address messages were received in total. "
+                                 f"Guard whose address is not receives are recorded in {self.address_unreceived_txt_file}.")
+            else:
+                self.log.warning(f"接收成功。但总共只接收到了{count}个地址信息。"
+                                 f"未接收到地址信息的舰长记录在 {self.address_unreceived_txt_file} 中。")

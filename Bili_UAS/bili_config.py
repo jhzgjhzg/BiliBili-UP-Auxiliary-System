@@ -6,18 +6,19 @@ This module provides a command line interface for setting work paths and danmu m
 
 
 from __future__ import annotations
+from Bili_UAS.utils import config_utils as ucu
 from Bili_UAS.scripts import config as sc
 import tyro
 from typing import Union, Literal
 import os
 from bilibili_api import sync
-from Bili_UAS.writer import log_writer as lw
+from Bili_UAS.writer import log_writer as wlw
 
 
 def sync_tyro_main(work_dir: str,
                    ffmpeg: Union[str, None] = None,
                    mark: Union[str, None] = None,
-                   language: Literal["en", "ch"] = "en") -> None:
+                   language: Literal["en", "zh-CN"] = "en") -> None:
     """
     Set working path, ffmpeg path, language and danmu mark.
 
@@ -31,18 +32,18 @@ def sync_tyro_main(work_dir: str,
         os.makedirs(work_dir, exist_ok=True)
     sync(sc.save_work_dir_to_txt(work_dir))
 
-    work_dir: str = sync(sc.load_work_dir_from_txt())
+    work_dir: str = sync(ucu.load_work_dir_from_txt())
     log_output: str = os.path.join(work_dir, "log")
     log_file: str = os.path.join(log_output, "config_log.txt")
 
-    file_handler: lw.Handler = lw.Handler("file")
+    file_handler: wlw.Handler = wlw.Handler("file")
     file_handler.set_level("WARNING", "ERROR")
     file_handler.set_file(log_file)
 
-    sys_handler: lw.Handler = lw.Handler("sys")
+    sys_handler: wlw.Handler = wlw.Handler("sys")
     sys_handler.set_level("INFO", "WARNING")
 
-    log: lw.Logger = lw.Logger()
+    log: wlw.Logger = wlw.Logger()
     log.add_config(file_handler)
     log.add_config(sys_handler)
 

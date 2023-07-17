@@ -9,6 +9,8 @@ from __future__ import annotations
 import datetime
 from Bili_UAS.writer import abnormal_monitor as am
 from typing import Union
+from functools import wraps
+import asyncio
 
 
 class Handler:
@@ -116,3 +118,23 @@ class Logger:
         """
         for handler in self.config:
             handler.log_print("ERROR", message)
+
+
+def async_separate(number: int = 50) -> callable:
+    """
+    Separate program output.
+
+    Args:
+        number: the number of separator characters
+    """
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            print("\n")
+            print("\033[32m" + "-" * number + "\033[0m")
+            result = await func(*args, **kwargs)
+            print("\033[32m" + "-" * number + "\033[0m")
+            print("\n")
+            return result
+        return wrapper
+    return decorator

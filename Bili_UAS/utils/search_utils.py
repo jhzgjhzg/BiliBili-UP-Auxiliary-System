@@ -7,6 +7,7 @@ from __future__ import annotations
 from bilibili_api import search as bas
 from Bili_UAS.writer import log_writer as lw
 import time
+from typing import Union
 
 
 class BiliSearch(object):
@@ -16,7 +17,7 @@ class BiliSearch(object):
     def __init__(self, keywords: list[str], log: str) -> None:
         self.keywords: list[str] = keywords
         self.log_file: str = log
-        self.log: lw.Logger = None
+        self.log: Union[lw.Logger, None] = None
         self.__set_log()
 
         self.video_id: list[str] = []

@@ -6,18 +6,22 @@ This module provides the function to obtain video data and generate word cloud i
 
 
 from __future__ import annotations
-from typing import Union, Literal
+from typing import Union
 import jieba
 import wordcloud
 import pandas as pd
-from Bili_UAS.utils import video_utils as vu
+from Bili_UAS.utils import video_utils as uvu
 from numpy import typing as npt
 from bilibili_api import Credential
-from Bili_UAS.writer import log_writer as lw
+from Bili_UAS.utils.config_utils import load_language_from_txt
+from Bili_UAS.writer import log_writer as wlw
 import enum
 import os
 from dataclasses import dataclass
 import tyro
+
+
+language: str = load_language_from_txt()
 
 
 class WordCloudContent(enum.Enum):
@@ -48,23 +52,26 @@ async def word_cloud(video_id: Union[str, int],
         log_file: the log file
         work_dir: working directory
     """
-    file_handler: lw.Handler = lw.Handler("file")
+    file_handler: wlw.Handler = wlw.Handler("file")
     file_handler.set_level("WARNING", "ERROR")
     file_handler.set_file(log_file)
 
-    sys_handler: lw.Handler = lw.Handler("sys")
+    sys_handler: wlw.Handler = wlw.Handler("sys")
     sys_handler.set_level("INFO", "WARNING")
 
-    log: lw.Logger = lw.Logger()
+    log: wlw.Logger = wlw.Logger()
     log.add_config(file_handler)
     log.add_config(sys_handler)
 
     if isinstance(video_id, int):
-        video = vu.BiliVideo(log=log_file, aid=video_id, credential=credential, work_dir=work_dir)
+        video = uvu.BiliVideo(log=log_file, aid=video_id, credential=credential, work_dir=work_dir)
     else:
-        video = vu.BiliVideo(log=log_file, bvid=video_id, credential=credential, work_dir=work_dir)
+        video = uvu.BiliVideo(log=log_file, bvid=video_id, credential=credential, work_dir=work_dir)
 
-    log.info("Starting to generate word cloud image...")
+    if language == "en":
+        log.info("Starting to generate word cloud image...")
+    else:
+        log.info("开始生成词云图片...")
     if mode == WordCloudContent.REPLY:
         save_path: str = os.path.join(video.work_dir, "reply_word_cloud.jpg")
 
@@ -119,7 +126,10 @@ async def word_cloud(video_id: Union[str, int],
         image = wc.to_image()
         image.save(save_path, quality=100)
 
-    log.info(f"Word cloud image generated successfully! Saved in {save_path}.")
+    if language == "en":
+        log.info(f"Word cloud image generated successfully! Saved in {save_path}.")
+    else:
+        log.info(f"词云图片生成成功！保存在 {save_path} 。")
 
 
 # TODO: Effective Chinese sentiment analysis tool
@@ -128,47 +138,3 @@ async def word_cloud(video_id: Union[str, int],
 #     Conduct emotional analysis on video comments and barrage, and generate emotional statistical charts.
 #     """
 #     pass
-
-
-@dataclass
-class BiliVideoConfigWordCloud(object):
-    """
-    Bilibili Video Configuration Class: Word Cloud.
-    """
-    video_id: Union[str, int, None] = None
-    """video's aid or bvid"""
-    mode: Literal[1, 2, 3] = 1
-    """word cloud content, 1 represents comments, 2 represents barrage, and 3 represents both"""
-    sec: bool = True
-    """whether to process secondary replies"""
-    mask: Union[str, None] = None
-    """word cloud mask, filling the white pixel with word clouds"""
-
-
-@dataclass
-class BiliVideoConfigDownload(object):
-    """
-    Bilibili Video Configuration Class: Download.
-    """
-    video_id: Union[str, int, None] = None
-    """video's aid or bvid"""
-    mode: Literal[1, 2] = 1
-    """video download type, 1 represents video and 2 represents audio"""
-
-
-mode_configs: dict[str, Union[BiliVideoConfigWordCloud, BiliVideoConfigDownload]] = {}
-
-descriptions: dict[str, str] = {
-    "word_cloud": "Generate word cloud images of video replies or danmu.",
-    "download": "Download video or audio."
-}
-
-mode_configs["word_cloud"] = BiliVideoConfigWordCloud()
-mode_configs["download"] = BiliVideoConfigDownload()
-
-VideoConfigUnion = tyro.conf.SuppressFixed[
-    tyro.conf.FlagConversionOff[
-        tyro.extras.subcommand_type_from_defaults(defaults=mode_configs, descriptions=descriptions)
-    ]
-]
-

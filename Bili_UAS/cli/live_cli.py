@@ -1,7 +1,7 @@
 """
-Bili_UAS.scripts.live
+Bili_UAS.cli.live_cli
 
-This module provides classes for configuring live-streaming data monitoring.
+This module provides command line interface configuration for monitoring and processing live broadcasts.
 """
 
 

@@ -9,11 +9,11 @@ requirements = [
     'wordcloud~=1.9.2',
     'jieba~=0.42.1',
     'scipy~=1.11.1',
-    'numpy~=1.25.0',
-    'tyro~=0.5.3',
+    'numpy~=1.25.1',
+    'tyro~=0.5.4',
     'pandas~=2.0.3',
     'tqdm~=4.65.0',
-    'matplotlib~=3.7.1',
+    'matplotlib~=3.7.2',
     'asyncio~=3.4.3',
     'apscheduler~=3.10.1',
     'requests~=2.31.0',
@@ -22,7 +22,7 @@ requirements = [
 
 setup(
     name='bili-uas',
-    version='0.1.10',
+    version='0.2.0',
     license='GPLv3',
     author='jhzg',
     author_email='jhzg02200059@163.com',
@@ -30,7 +30,7 @@ setup(
     description='Assist up in personal, live, and video data analysis and prediction.',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    keywords=["BiliBili", "auxiliary", "analysis", "live", "video", "word_cloud"],
+    keywords=["BiliBili", "auxiliary", "analysis", "live", "video", "word_cloud", "monitor"],
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
@@ -40,6 +40,7 @@ setup(
         "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)"
     ],
     packages=['Bili_UAS',
+              'Bili_UAS.cli',
               'Bili_UAS.utils',
               'Bili_UAS.writer',
               'Bili_UAS.scripts'],

@@ -6,7 +6,7 @@ This module provides the function to save and read working path and danmu mark.
 
 
 from __future__ import annotations
-from Bili_UAS.writer import abnormal_monitor as am, log_writer as lw
+from Bili_UAS.writer import log_writer as wlw
 import os
 
 
@@ -37,24 +37,7 @@ async def save_work_dir_to_txt(work_dir: str) -> None:
     print("Working path saved successfully.")
 
 
-async def load_work_dir_from_txt() -> str:
-    """
-    Load a working path from file.
-
-    Returns:
-        the work directory
-    """
-    config_file: str = ".work_dir.txt"
-    if not os.path.exists(config_file):
-        raise am.FileMissError("No historical working path found, please specify the working path.")
-    else:
-        with open(config_file, "r") as f:
-            work_dir: str = f.readline().removesuffix("\n")
-        print("Historical working path found, using historical working path.")
-        return work_dir
-
-
-async def save_danmu_mark_to_txt(danmu_mark: list[str], log: lw.Logger) -> None:
+async def save_danmu_mark_to_txt(danmu_mark: list[str], log: wlw.Logger) -> None:
     """
     Save danmu mark to file.
 
@@ -69,7 +52,7 @@ async def save_danmu_mark_to_txt(danmu_mark: list[str], log: lw.Logger) -> None:
     log.info("Danmu mark saved successfully.")
 
 
-async def save_ffmpeg_path_to_txt(ffmpeg_path: str, log: lw.Logger) -> None:
+async def save_ffmpeg_path_to_txt(ffmpeg_path: str, log: wlw.Logger) -> None:
     """
     Save ffmpeg path to file.
 
@@ -83,7 +66,7 @@ async def save_ffmpeg_path_to_txt(ffmpeg_path: str, log: lw.Logger) -> None:
     log.info("Ffmpeg path saved successfully.")
 
 
-async def save_language_to_txt(language: str, log: lw.Logger) -> None:
+async def save_language_to_txt(language: str, log: wlw.Logger) -> None:
     """
     Save language to file.
 

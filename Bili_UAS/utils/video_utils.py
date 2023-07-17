@@ -8,7 +8,8 @@ This module provides the BiliVideo class, which is used to get video information
 from __future__ import annotations
 import numpy as np
 from .utils import BiliVideoReply, BiliVideoDanmu, BiliVideoTag
-from Bili_UAS.writer import log_writer as lw, abnormal_monitor as am
+from .config_utils import load_language_from_txt, load_ffmpeg_path_from_txt
+from Bili_UAS.writer import log_writer as wlw
 import time
 import copy
 import re
@@ -21,10 +22,14 @@ import httpx
 import enum
 
 
+language: str = load_language_from_txt()
+
+
+@wlw.async_separate()
 async def _download_video_from_url(video_url: str,
                                    output_file: str,
                                    video_pid: int,
-                                   log: lw.Logger,
+                                   log: wlw.Logger,
                                    prompt_prefix: str) -> None:
     """
     Download video through url.
@@ -35,7 +40,10 @@ async def _download_video_from_url(video_url: str,
         video_pid: pid of video
         log: the log class
     """
-    log.info(f"{video_pid} {prompt_prefix} downloading...")
+    if language == "en":
+        log.info(f"{video_pid} {prompt_prefix} downloading...")
+    else:
+        log.info(f"{video_pid} {prompt_prefix} 正在下载...")
     async with httpx.AsyncClient(headers=HEADERS) as sess:
         resp = await sess.get(video_url)
         length = resp.headers.get('content-length')
@@ -46,30 +54,16 @@ async def _download_video_from_url(video_url: str,
                 if not chunk:
                     break
                 process += len(chunk)
-                log.info(f"{video_pid} {prompt_prefix} downloading... {process} / {length}")
+                if language == "en":
+                    log.info(f"{video_pid} {prompt_prefix} downloading... {process} / {length}")
+                else:
+                    log.info(f"{video_pid} {prompt_prefix} 正在下载... {process} / {length}")
                 f.write(chunk)
 
-    log.info(f"{video_pid} {prompt_prefix} download successfully.")
-
-
-async def _load_ffmpeg_path_from_txt(log: lw.Logger) -> str:
-    """
-    Load the ffmpeg path.
-
-    Args:
-        log: the log class
-
-    Returns:
-        the path of ffmpeg
-    """
-    ffmpeg_file: str = ".ffmpeg.txt"
-    if not os.path.exists(ffmpeg_file):
-        raise am.FileMissError("No file found to record ffmpeg path, please specify the ffmpeg path.")
+    if language == "en":
+        log.info(f"{video_pid} {prompt_prefix} download successfully.")
     else:
-        with open(ffmpeg_file, "r") as f:
-            ffmpeg: str = f.readline().removesuffix("\n")
-        log.info("Historical ffmpeg path found, using historical ffmpeg path.")
-        return ffmpeg
+        log.info(f"{video_pid} {prompt_prefix} 下载成功.")
 
 
 class VideoDownloadMode(enum.Enum):
@@ -137,7 +131,7 @@ class BiliVideo(bav.Video):
         self.info_excel: Union[DataFrame, None] = None
 
         self.log_file: str = log
-        self.log: Union[lw.Logger, None] = None
+        self.log: Union[wlw.Logger, None] = None
         self.__set_log()
         self.__p_video_init()
         self.__load_work_dir(work_dir)
@@ -146,14 +140,14 @@ class BiliVideo(bav.Video):
         """
         Set up logs.
         """
-        file_handler: lw.Handler = lw.Handler("file")
+        file_handler: wlw.Handler = wlw.Handler("file")
         file_handler.set_level("WARNING", "ERROR")
         file_handler.set_file(self.log_file)
 
-        sys_handler: lw.Handler = lw.Handler("sys")
+        sys_handler: wlw.Handler = wlw.Handler("sys")
         sys_handler.set_level("INFO", "WARNING")
 
-        self.log: lw.Logger = lw.Logger()
+        self.log: wlw.Logger = wlw.Logger()
         self.log.add_config(file_handler)
         self.log.add_config(sys_handler)
 
@@ -167,7 +161,10 @@ class BiliVideo(bav.Video):
                 self.p_cid.append(page['cid'])
                 self.p_time.append(page['duration'])
         else:
-            self.log.warning("Failed to obtain sub video ID, which may affect subsequent operations!")
+            if language == "en":
+                self.log.warning("Failed to obtain sub video ID, which may affect subsequent operations!")
+            else:
+                self.log.warning("未获取到分P视频ID, 这可能会影响后续操作!")
 
     def __load_work_dir(self, work_dir: str) -> None:
         """
@@ -181,37 +178,40 @@ class BiliVideo(bav.Video):
         if not os.path.exists(self.work_dir):
             os.mkdir(self.work_dir)
 
+    @wlw.async_separate()
     async def video_info_statistics(self) -> None:
         """
         Obtain current video data information.
         """
-        self.log.info(f"Start acquiring video information for {self.bvid}...")
-        video_info: dict = await self.get_info()
-        if video_info:
-            self.publish_time = video_info['pubdate']
-            self.total_time = video_info['duration']
-            self.view = video_info['stat']['view']
-            self.like = video_info['stat']['like']
-            self.coin = video_info['stat']['coin']
-            self.favorite = video_info['stat']['favorite']
-            self.share = video_info['stat']['share']
-            self.history_rank = video_info['stat']['his_rank']
-            self.reply_num = video_info['stat']['reply']
-            self.danmu_num = video_info['stat']['danmaku']
-            self.copyright = video_info['copyright']  # copyright: copyright mark, 1: homemade, 2: reprint
-            self.up_uid = video_info['owner']['mid']
+        if language == "en":
+            self.log.info(f"Start acquiring video information for {self.bvid}...")
         else:
-            self.log.warning("Failed to obtain video information, which may affect subsequent operations!")
+            self.log.info(f"开始获取 {self.bvid} 的视频信息...")
+
+        video_info: dict = await self.get_info()
+        self.publish_time = video_info['pubdate']
+        self.total_time = video_info['duration']
+        self.view = video_info['stat']['view']
+        self.like = video_info['stat']['like']
+        self.coin = video_info['stat']['coin']
+        self.favorite = video_info['stat']['favorite']
+        self.share = video_info['stat']['share']
+        self.history_rank = video_info['stat']['his_rank']
+        self.reply_num = video_info['stat']['reply']
+        self.danmu_num = video_info['stat']['danmaku']
+        self.copyright = video_info['copyright']  # copyright: copyright mark, 1: homemade, 2: reprint
+        self.up_uid = video_info['owner']['mid']
 
         video_stst: dict = await self.get_stat()
-        if video_stst:
-            self.reprint_sign = video_stst[
-                'no_reprint']  # reprint_sign: prohibition of reprinting sign, 0: none, 1: prohibition
+        self.reprint_sign = video_stst[
+            'no_reprint']  # reprint_sign: prohibition of reprinting sign, 0: none, 1: prohibition
+
+        if language == "en":
+            self.log.info(f"Video information acquisition completed for {self.bvid}.")
         else:
-            self.log.warning("Failed to obtain video reprint information, which may affect subsequent operations!")
+            self.log.info(f"{self.bvid} 的视频信息获取完成.")
 
-        self.log.info(f"Video information acquisition completed for {self.bvid}.")
-
+    @wlw.async_separate()
     async def get_replies(self, sec: bool) -> None:
         """
         Obtain first level (second level) replies of videos.
@@ -219,81 +219,122 @@ class BiliVideo(bav.Video):
         Args:
             sec: whether to obtain the second level reply
         """
-        self.log.info(f"Start acquiring replies for {self.bvid}...")
+        if language == "en":
+            self.log.info(f"Start acquiring replies for {self.bvid}...")
+        else:
+            self.log.info(f"开始获取 {self.bvid} 的评论...")
         page: int = 1
         count: int = 0
         while True:
-            self.log.info(f"Start acquiring page {page} of replies for {self.bvid}.")
+            if language == "en":
+                self.log.info(f"Start acquiring page {page} of replies for {self.bvid}.")
+            else:
+                self.log.info(f"开始获取 {self.bvid} 第 {page} 页评论.")
             page_reply_info: dict = await bac.get_comments(self.aid, bac.CommentResourceType.VIDEO, page,
                                                            credential=self.credential)
-            if page_reply_info:
-                count += page_reply_info['page']['size']
-                if page_reply_info['replies']:
-                    for r in page_reply_info['replies']:
-                        reply: BiliVideoReply = BiliVideoReply(r, log=self.log_file)
-                        self.replies.append(reply)
-                        if sec:
-                            if r['replies']:
-                                for sub_r in r['replies']:
-                                    sub_reply: BiliVideoReply = BiliVideoReply(sub_r, log=self.log_file)
-                                    self.replies.append(sub_reply)
-                    page += 1
-                    time.sleep(0.2)
-                    if count >= page_reply_info['page']['count']:
-                        break
-                else:
+            count += page_reply_info['page']['size']
+            if page_reply_info['replies']:
+                for r in page_reply_info['replies']:
+                    reply: BiliVideoReply = BiliVideoReply(r, log=self.log_file)
+                    self.replies.append(reply)
+                    if sec:
+                        if r['replies']:
+                            for sub_r in r['replies']:
+                                sub_reply: BiliVideoReply = BiliVideoReply(sub_r, log=self.log_file)
+                                self.replies.append(sub_reply)
+                page += 1
+                time.sleep(0.2)
+                if count >= page_reply_info['page']['count']:
                     break
             else:
                 break
         if sec:
-            self.log.info(
-                f"A total of {len(self.replies)} replies have been collected successfully. "
-                f"(With second level replies)")
+            if language == "en":
+                self.log.info(
+                    f"A total of {len(self.replies)} replies have been collected successfully. "
+                    f"(With second level replies)")
+            else:
+                self.log.info(
+                    f"一共成功获取了 {len(self.replies)} 条评论. (包含二级评论)")
         else:
-            self.log.info(
-                f"A total of {len(self.replies)} replies have been collected successfully. "
-                f"(Without second level replies)")
+            if language == "en":
+                self.log.info(
+                    f"A total of {len(self.replies)} replies have been collected successfully. "
+                    f"(Without second level replies)")
+            else:
+                self.log.info(
+                    f"一共成功获取了 {len(self.replies)} 条评论. (不包含二级评论)")
 
+    @wlw.async_separate()
     async def get_danmu(self) -> None:
         """
         Obtain all current danmu in the video.
         """
-        self.log.info(f"Start acquiring danmu for {self.bvid}...")
+        if language == "en":
+            self.log.info(f"Start acquiring danmu for {self.bvid}...")
+        else:
+            self.log.info(f"开始获取 {self.bvid} 的弹幕...")
         if self.p_cid:
             for p_id in self.p_cid:
-                self.log.info(f"Start acquiring danmu for sub video: {p_id}.")
+                if language == "en":
+                    self.log.info(f"Start acquiring danmu for sub video: {p_id}...")
+                else:
+                    self.log.info(f"开始获取分P: {p_id} 的弹幕...")
                 danmu_list_info: list[Danmaku] = await self.get_danmakus(cid=p_id)
                 if danmu_list_info:
                     for danmu_info in danmu_list_info:
                         danmu: BiliVideoDanmu = BiliVideoDanmu(danmu_info, log=self.log_file)
                         self.danmu.append(danmu)
                 time.sleep(0.2)
-            self.log.info(f"A total of {len(self.danmu)} danmu have been collected successfully.")
+            if language == "en":
+                self.log.info(f"A total of {len(self.danmu)} danmu have been collected successfully.")
+            else:
+                self.log.info(f"一共成功获取了 {len(self.danmu)} 条弹幕.")
         else:
-            self.log.warning("The sub video id is missing, and the danmu cannot be obtained!")
+            if language == "en":
+                self.log.warning("The sub video id is missing, and the danmu cannot be obtained!")
+            else:
+                self.log.warning("缺少分P视频id, 无法获取弹幕!")
 
+    @wlw.async_separate()
     async def reply_robust_process(self) -> None:
         """
         Robust processing of replies. Remove emoticon frame.
         """
-        self.log.info(f"Start robust processing of replies for {self.bvid}...")
+        if language == "en":
+            self.log.info(f"Start robust processing of replies for {self.bvid}...")
+        else:
+            self.log.info(f"开始处理 {self.bvid} 的评论内容...")
         if self.replies:
             for elem in self.replies:
                 rb_reply: BiliVideoReply = copy.deepcopy(elem)
                 rb_reply.content = re.sub(r"\[.*?]", ",", rb_reply.content)
                 self.robust_replies.append(rb_reply)
-            self.log.info(f"Robust processing of replies for {self.bvid} completed.")
+            if language == "en":
+                self.log.info(f"Robust processing of replies for {self.bvid} completed.")
+            else:
+                self.log.info(f"完成对 {self.bvid} 评论内容的处理.")
         else:
-            self.log.warning("The reply is empty, and the robust processing cannot be performed!")
+            if language == "en":
+                self.log.warning("The reply is empty, and the robust processing cannot be performed!")
+            else:
+                self.log.warning("评论为空, 无法进行处理!")
 
+    @wlw.async_separate()
     async def get_tag(self) -> None:
         """
         Obtain video tag information.
         """
-        self.log.info(f"Start acquiring tags for {self.bvid}...")
+        if language == "en":
+            self.log.info(f"Start acquiring tags for {self.bvid}...")
+        else:
+            self.log.info(f"开始获取 {self.bvid} 的标签...")
         if self.p_cid:
             for p_id in self.p_cid:
-                self.log.info(f"Start acquiring tags for sub video: {p_id}.")
+                if language == "en":
+                    self.log.info(f"Start acquiring tags for sub video: {p_id}.")
+                else:
+                    self.log.info(f"开始获取分P: {p_id} 的标签...")
                 tag_info_list: list[dict] = await self.get_tags(cid=p_id)
                 if tag_info_list:
                     for tag_info in tag_info_list:
@@ -301,16 +342,30 @@ class BiliVideo(bav.Video):
                         self.tags.append(tag)
                 time.sleep(0.2)
             if len(self.tags) > 0:
-                self.log.info(f"A total of {len(self.tags)} tags have been collected successfully.")
+                if language == "en":
+                    self.log.info(f"A total of {len(self.tags)} tags have been collected successfully.")
+                else:
+                    self.log.info(f"一共成功获取了 {len(self.tags)} 个标签.")
             else:
-                self.log.warning(f"{self.bvid} did not add a tag, which may affect subsequent operations!")
+                if language == "en":
+                    self.log.warning(f"{self.bvid} did not add a tag, which may affect subsequent operations!")
+                else:
+                    self.log.warning(f"{self.bvid} 没有添加标签, 这可能会影响后续操作!")
         else:
-            self.log.warning("The sub video id is missing, and the tag cannot be obtained!")
+            if language == "en":
+                self.log.warning("The sub video id is missing, and the tag cannot be obtained!")
+            else:
+                self.log.warning("缺少分P视频id, 无法获取标签!")
 
+    @wlw.async_separate()
     async def tag_process(self) -> None:
         """
         Calculate the mean, maximum and minimum values of video tag popularity.
         """
+        if language == "en":
+            self.log.info(f"Start processing tags for {self.bvid}...")
+        else:
+            self.log.info(f"开始处理 {self.bvid} 的标签...")
         tag_use: list[int] = []
         tag_follow: list[int] = []
         if self.tags:
@@ -323,6 +378,10 @@ class BiliVideo(bav.Video):
             self.tag_follow_mean: float = sum(tag_follow) / len(tag_follow)
             self.tag_follow_max: int = np.max(tag_follow)
             self.tag_follow_min: int = np.min(tag_follow)
+            if language == "en":
+                self.log.info(f"Processing tags for {self.bvid} completed.")
+            else:
+                self.log.info(f"完成对 {self.bvid} 标签的处理.")
         else:
             self.tag_follow_mean: float = -1
             self.tag_follow_max: int = -1
@@ -330,7 +389,10 @@ class BiliVideo(bav.Video):
             self.tag_use_mean: float = -1
             self.tag_use_max: int = -1
             self.tag_use_min: int = -1
-            self.log.warning("The tag is empty!")
+            if language == "en":
+                self.log.warning("The tag is empty!")
+            else:
+                self.log.warning("标签为空!")
 
     async def __load_info_excel(self, excel_file: str) -> None:
         """
@@ -373,10 +435,14 @@ class BiliVideo(bav.Video):
                                         "tag_follow_mean": self.tag_follow_mean,
                                         "tag_follow_max": self.tag_follow_max,
                                         "tag_follow_min": self.tag_follow_min},
-                                        index=[0])
+                                       index=[0])
         pd.concat([self.info_excel, line], axis=0, ignore_index=True).to_excel(excel_file, index=False)
-        self.log.info(f"Video information has been saved to {excel_file}.")
+        if language == "en":
+            self.log.info(f"Video information has been saved to {excel_file}.")
+        else:
+            self.log.info(f"视频信息已保存至 {excel_file}.")
 
+    @wlw.async_separate()
     async def download(self, mode: VideoDownloadMode) -> None:
         """
         Download all videos or audio.
@@ -385,7 +451,7 @@ class BiliVideo(bav.Video):
             mode: 0 for downloading videos, 1 for downloading audio.
         """
         if self.p_cid:
-            ffmpeg_path = await _load_ffmpeg_path_from_txt(self.log)
+            ffmpeg_path = await load_ffmpeg_path_from_txt()
             for pid in self.p_cid:
                 p_url_info: dict = await self.get_download_url(cid=pid)
                 detector = bav.VideoDownloadURLDataDetecter(data=p_url_info)
@@ -398,11 +464,17 @@ class BiliVideo(bav.Video):
 
                         await _download_video_from_url(streams[0].url, temp_flv, pid, self.log, "flv video streaming")
 
-                        self.log.info("Converting video format...")
+                        if language == "en":
+                            self.log.info("Converting video format...")
+                        else:
+                            self.log.info("正在转换视频格式...")
                         os.system(f"{ffmpeg_path} -i {temp_flv} {mp4_video_out}")
 
                         os.remove(temp_flv)
-                        self.log.info(f"{pid} video download successfully.")
+                        if language == "en":
+                            self.log.info(f"{pid} video download successfully.")
+                        else:
+                            self.log.info(f"{pid} 视频下载成功.")
 
                     elif mode == VideoDownloadMode.AUDIO:
                         temp_flv: str = os.path.join(self.work_dir, f"{pid}_flv_temp.flv")
@@ -410,11 +482,17 @@ class BiliVideo(bav.Video):
 
                         await _download_video_from_url(streams[0].url, temp_flv, pid, self.log, "flv video streaming")
 
-                        self.log.info("Converting audio format...")
+                        if language == "en":
+                            self.log.info("Converting audio format...")
+                        else:
+                            self.log.info("正在转换音频格式...")
                         os.system(f"{ffmpeg_path} -i {temp_flv} -vn -acodec copy {mp3_audio_out}")
 
                         os.remove(temp_flv)
-                        self.log.info(f"{pid} audio download successfully.")
+                        if language == "en":
+                            self.log.info(f"{pid} audio download successfully.")
+                        else:
+                            self.log.info(f"{pid} 音频下载成功.")
                 else:
                     if mode == VideoDownloadMode.VIDEO:
                         temp_m4s_video: str = os.path.join(self.work_dir, f"{pid}_video_mp4_temp.m4s")
@@ -424,13 +502,19 @@ class BiliVideo(bav.Video):
                         await _download_video_from_url(streams[0].url, temp_m4s_video, pid, self.log, "video streaming")
                         await _download_video_from_url(streams[1].url, temp_m4s_audio, pid, self.log, "audio streaming")
 
-                        self.log.info("Converting video format...")
+                        if language == "en":
+                            self.log.info("Converting video format...")
+                        else:
+                            self.log.info("正在转换视频格式...")
                         os.system(f"{ffmpeg_path} -i {temp_m4s_video} -i {temp_m4s_audio} "
                                   f"-vcodec copy -acodec copy {mp4_video_out}")
 
                         os.remove(temp_m4s_video)
                         os.remove(temp_m4s_audio)
-                        self.log.info(f"{pid} video download successfully.")
+                        if language == "en":
+                            self.log.info(f"{pid} video download successfully.")
+                        else:
+                            self.log.info(f"{pid} 视频下载成功.")
 
                     elif mode == VideoDownloadMode.AUDIO:
                         temp_m4s_audio: str = os.path.join(self.work_dir, f"{pid}_audio_mp4_temp.m4s")
@@ -438,8 +522,14 @@ class BiliVideo(bav.Video):
 
                         await _download_video_from_url(streams[1].url, temp_m4s_audio, pid, self.log, "audio streaming")
 
-                        self.log.info("Converting audio format...")
+                        if language == "en":
+                            self.log.info("Converting audio format...")
+                        else:
+                            self.log.info("正在转换音频格式...")
                         os.system(f"{ffmpeg_path} -i {temp_m4s_audio} -acodec copy {mp3_audio_out}")
 
                         os.remove(temp_m4s_audio)
-                        self.log.info(f"{pid} audio download successfully.")
+                        if language == "en":
+                            self.log.info(f"{pid} audio download successfully.")
+                        else:
+                            self.log.info(f"{pid} 音频下载成功.")

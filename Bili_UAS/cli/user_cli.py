@@ -1,22 +1,13 @@
 """
-Bili_UAS.scripts.user
+Bili_UAS.cli.user_cli
 
-This module provides classes for configuring user data.
+This module provides user command line interface configuration.
 """
 
 
 import tyro
 from typing import Union, Literal
 from dataclasses import dataclass
-import enum
-
-
-class AddressProcessType(enum.Enum):
-    """
-
-    """
-    SEND = 1
-    RECEIVE = 2
 
 
 @dataclass

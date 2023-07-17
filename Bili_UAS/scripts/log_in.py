@@ -13,7 +13,7 @@ from bilibili_api.exceptions import (CredentialNoBiliJctException, CredentialNoS
 import sys
 import json
 import os
-from Bili_UAS.writer import log_writer as lw
+from Bili_UAS.writer import log_writer as wlw
 import enum
 from typing import Union
 
@@ -35,14 +35,14 @@ async def load_credential_from_json(log_file: str) -> Union[Credential, None]:
     Args:
         log_file: the log file
     """
-    file_handler: lw.Handler = lw.Handler("file")
+    file_handler: wlw.Handler = wlw.Handler("file")
     file_handler.set_level("WARNING", "ERROR")
     file_handler.set_file(log_file)
 
-    sys_handler: lw.Handler = lw.Handler("sys")
+    sys_handler: wlw.Handler = wlw.Handler("sys")
     sys_handler.set_level("INFO", "WARNING")
 
-    log: lw.Logger = lw.Logger()
+    log: wlw.Logger = wlw.Logger()
     log.add_config(file_handler)
     log.add_config(sys_handler)
 
@@ -70,14 +70,14 @@ async def save_credential_to_json(credential: Credential, log_file: str) -> None
         credential: logon credentials
         log_file: the log file
     """
-    file_handler: lw.Handler = lw.Handler("file")
+    file_handler: wlw.Handler = wlw.Handler("file")
     file_handler.set_level("WARNING", "ERROR")
     file_handler.set_file(log_file)
 
-    sys_handler: lw.Handler = lw.Handler("sys")
+    sys_handler: wlw.Handler = wlw.Handler("sys")
     sys_handler.set_level("INFO", "WARNING")
 
-    log: lw.Logger = lw.Logger()
+    log: wlw.Logger = wlw.Logger()
     log.add_config(file_handler)
     log.add_config(sys_handler)
 
@@ -109,14 +109,14 @@ async def save_credential_by_parm_to_json(sessdata: str,
         ac_time_value: credential ac_time_value
         log_file: the log file
     """
-    file_handler: lw.Handler = lw.Handler("file")
+    file_handler: wlw.Handler = wlw.Handler("file")
     file_handler.set_level("WARNING", "ERROR")
     file_handler.set_file(log_file)
 
-    sys_handler: lw.Handler = lw.Handler("sys")
+    sys_handler: wlw.Handler = wlw.Handler("sys")
     sys_handler.set_level("INFO", "WARNING")
 
-    log: lw.Logger = lw.Logger()
+    log: wlw.Logger = wlw.Logger()
     log.add_config(file_handler)
     log.add_config(sys_handler)
 
@@ -141,14 +141,14 @@ async def log_in_by_QR_code(log_file: str) -> bool:
     Returns:
         True if login successfully, False otherwise.
     """
-    file_handler: lw.Handler = lw.Handler("file")
+    file_handler: wlw.Handler = wlw.Handler("file")
     file_handler.set_level("WARNING", "ERROR")
     file_handler.set_file(log_file)
 
-    sys_handler: lw.Handler = lw.Handler("sys")
+    sys_handler: wlw.Handler = wlw.Handler("sys")
     sys_handler.set_level("INFO", "WARNING")
 
-    log: lw.Logger = lw.Logger()
+    log: wlw.Logger = wlw.Logger()
     log.add_config(file_handler)
     log.add_config(sys_handler)
 
@@ -195,14 +195,14 @@ async def log_in_by_password(log_file: str) -> bool:
     Returns:
         True if login successfully, False otherwise.
     """
-    file_handler: lw.Handler = lw.Handler("file")
+    file_handler: wlw.Handler = wlw.Handler("file")
     file_handler.set_level("WARNING", "ERROR")
     file_handler.set_file(log_file)
 
-    sys_handler: lw.Handler = lw.Handler("sys")
+    sys_handler: wlw.Handler = wlw.Handler("sys")
     sys_handler.set_level("INFO", "WARNING")
 
-    log: lw.Logger = lw.Logger()
+    log: wlw.Logger = wlw.Logger()
     log.add_config(file_handler)
     log.add_config(sys_handler)
 
@@ -259,14 +259,14 @@ async def log_in_by_verification_code(log_file: str) -> bool:
     Returns:
         True if login successfully, False otherwise.
     """
-    file_handler: lw.Handler = lw.Handler("file")
+    file_handler: wlw.Handler = wlw.Handler("file")
     file_handler.set_level("WARNING", "ERROR")
     file_handler.set_file(log_file)
 
-    sys_handler: lw.Handler = lw.Handler("sys")
+    sys_handler: wlw.Handler = wlw.Handler("sys")
     sys_handler.set_level("INFO", "WARNING")
 
-    log: lw.Logger = lw.Logger()
+    log: wlw.Logger = wlw.Logger()
     log.add_config(file_handler)
     log.add_config(sys_handler)
 
@@ -326,14 +326,14 @@ async def refresh_credential(credential: Credential, log_file: str) -> Credentia
     Returns:
         refreshed credential
     """
-    file_handler: lw.Handler = lw.Handler("file")
+    file_handler: wlw.Handler = wlw.Handler("file")
     file_handler.set_level("WARNING", "ERROR")
     file_handler.set_file(log_file)
 
-    sys_handler: lw.Handler = lw.Handler("sys")
+    sys_handler: wlw.Handler = wlw.Handler("sys")
     sys_handler.set_level("INFO", "WARNING")
 
-    log: lw.Logger = lw.Logger()
+    log: wlw.Logger = wlw.Logger()
     log.add_config(file_handler)
     log.add_config(sys_handler)
 
