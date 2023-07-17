@@ -6,11 +6,9 @@ This module provides the function to save and read working path and danmu mark.
 
 
 from __future__ import annotations
-from Bili_UAS.writer import log_writer as wlw
 import os
 
 
-@wlw.async_separate()
 async def save_work_dir_to_txt(work_dir: str, language: str) -> None:
     """
     Save working path to file.
@@ -44,7 +42,6 @@ async def save_work_dir_to_txt(work_dir: str, language: str) -> None:
         print("INFO: 工作路径保存成功。")
 
 
-@wlw.async_separate()
 async def save_danmu_mark_to_txt(danmu_mark: list[str], language: str) -> None:
     """
     Save danmu mark to file.
@@ -63,7 +60,6 @@ async def save_danmu_mark_to_txt(danmu_mark: list[str], language: str) -> None:
         print("INFO: 弹幕标记保存成功。")
 
 
-@wlw.async_separate()
 async def save_ffmpeg_path_to_txt(ffmpeg_path: str, language: str) -> None:
     """
     Save ffmpeg path to file.
@@ -81,7 +77,6 @@ async def save_ffmpeg_path_to_txt(ffmpeg_path: str, language: str) -> None:
         print("INFO: ffmpeg路径保存成功。")
 
 
-@wlw.async_separate()
 async def save_language_to_txt(language: str) -> None:
     """
     Save language to file.

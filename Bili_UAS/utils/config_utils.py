@@ -46,9 +46,9 @@ async def load_work_dir_from_txt() -> str:
         with open(config_file, "r") as f:
             work_dir: str = f.readline().removesuffix("\n")
         if language == "en":
-            print("Historical working path found, using historical working path.")
+            print("INFO: Historical working path found, using historical working path.")
         else:
-            print("找到历史工作路径, 使用历史工作路径.")
+            print("INFO: 找到历史工作路径, 使用历史工作路径.")
         return work_dir
 
 
@@ -70,7 +70,7 @@ async def load_ffmpeg_path_from_txt() -> str:
         with open(ffmpeg_file, "r") as f:
             ffmpeg: str = f.readline().removesuffix("\n")
         if language == "en":
-            print("Historical ffmpeg path found, using historical ffmpeg path.")
+            print("INFO: Historical ffmpeg path found, using historical ffmpeg path.")
         else:
-            print("找到历史ffmpeg路径, 使用历史ffmpeg路径.")
+            print("INFO: 找到历史ffmpeg路径, 使用历史ffmpeg路径.")
         return ffmpeg

@@ -130,7 +130,6 @@ def async_separate(number: int = 50) -> callable:
     def decorator(func):
         @wraps(func)
         async def wrapper(*args, **kwargs):
-            print("\n")
             print("\033[32m" + "-" * number + "\033[0m")
             result = await func(*args, **kwargs)
             print("\033[32m" + "-" * number + "\033[0m")
