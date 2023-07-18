@@ -175,7 +175,7 @@ async def log_in_by_QR_code(log_file: str) -> bool:
     credential: Credential = login.login_with_qrcode()
 
     try:
-        await credential.raise_for_no_sessdata()
+        credential.raise_for_no_sessdata()
     except CredentialNoSessdataException:
         if language == "en":
             log.error("Login failed!")
@@ -184,7 +184,7 @@ async def log_in_by_QR_code(log_file: str) -> bool:
         return False
 
     try:
-        await credential.raise_for_no_bili_jct()
+        credential.raise_for_no_bili_jct()
     except CredentialNoBiliJctException:
         if language == "en":
             log.error("Login failed!")
@@ -193,7 +193,7 @@ async def log_in_by_QR_code(log_file: str) -> bool:
         return False
 
     try:
-        await credential.raise_for_no_buvid3()
+        credential.raise_for_no_buvid3()
     except CredentialNoBuvid3Exception:
         if language == "en":
             log.error("Login failed!")
@@ -202,7 +202,7 @@ async def log_in_by_QR_code(log_file: str) -> bool:
         return False
 
     try:
-        await credential.raise_for_no_dedeuserid()
+        credential.raise_for_no_dedeuserid()
     except CredentialNoDedeUserIDException:
         if language == "en":
             log.error("Login failed!")
@@ -263,7 +263,7 @@ async def log_in_by_password(log_file: str) -> bool:
         credential: Credential = c
 
     try:
-        await credential.raise_for_no_sessdata()
+        credential.raise_for_no_sessdata()
     except CredentialNoSessdataException:
         if language == "en":
             log.error("Login failed!")
@@ -272,7 +272,7 @@ async def log_in_by_password(log_file: str) -> bool:
         return False
 
     try:
-        await credential.raise_for_no_bili_jct()
+        credential.raise_for_no_bili_jct()
     except CredentialNoBiliJctException:
         if language == "en":
             log.error("Login failed!")
@@ -281,7 +281,7 @@ async def log_in_by_password(log_file: str) -> bool:
         return False
 
     try:
-        await credential.raise_for_no_buvid3()
+        credential.raise_for_no_buvid3()
     except CredentialNoBuvid3Exception:
         if language == "en":
             log.error("Login failed!")
@@ -290,7 +290,7 @@ async def log_in_by_password(log_file: str) -> bool:
         return False
 
     try:
-        await credential.raise_for_no_dedeuserid()
+        credential.raise_for_no_dedeuserid()
     except CredentialNoDedeUserIDException:
         if language == "en":
             log.error("Login failed!")
@@ -356,7 +356,7 @@ async def log_in_by_verification_code(log_file: str) -> bool:
         credential: Credential = c
 
     try:
-        await credential.raise_for_no_sessdata()
+        credential.raise_for_no_sessdata()
     except CredentialNoSessdataException:
         if language == "en":
             log.error("Login failed!")
@@ -365,7 +365,7 @@ async def log_in_by_verification_code(log_file: str) -> bool:
         return False
 
     try:
-        await credential.raise_for_no_bili_jct()
+        credential.raise_for_no_bili_jct()
     except CredentialNoBiliJctException:
         if language == "en":
             log.error("Login failed!")
@@ -374,7 +374,7 @@ async def log_in_by_verification_code(log_file: str) -> bool:
         return False
 
     try:
-        await credential.raise_for_no_buvid3()
+        credential.raise_for_no_buvid3()
     except CredentialNoBuvid3Exception:
         if language == "en":
             log.error("Login failed!")
@@ -383,7 +383,7 @@ async def log_in_by_verification_code(log_file: str) -> bool:
         return False
 
     try:
-        await credential.raise_for_no_dedeuserid()
+        credential.raise_for_no_dedeuserid()
     except CredentialNoDedeUserIDException:
         if language == "en":
             log.error("Login failed!")
