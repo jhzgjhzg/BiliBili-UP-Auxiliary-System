@@ -16,7 +16,6 @@ dist/
 # Test files / Scratch files
 test*.*
 scratch/
-test/
 # Tests
 !tests/*.py
 # Virtual environments
