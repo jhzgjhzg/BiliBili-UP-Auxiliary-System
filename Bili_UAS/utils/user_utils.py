@@ -24,6 +24,7 @@ from bilibili_api.exceptions import (CredentialNoBiliJctException, CredentialNoS
 import pandas as pd
 from pandas import DataFrame
 from typing import Union
+import pprint
 
 
 language: str = load_language_from_txt()
@@ -37,7 +38,7 @@ class AddressProcessType(enum.Enum):
     RECEIVE = 2
 
 
-async def _address_mag_simple_check(msg: list[str]) -> bool:
+async def _address_msg_simple_check(msg: list[str]) -> bool:
     """
     Check if it is address information.
 
@@ -190,17 +191,17 @@ class BiliUser(bau.User, bal.LiveRoom):
         self.fans_num_txt_file: str = os.path.join(self.work_dir, "fans_num.txt")
         if not os.path.exists(self.fans_num_txt_file):
             with open(self.fans_num_txt_file, "a") as f:
-                f.write("query_time,fans_num\n\n")
+                f.write("query_time,fans_num\n")
 
         self.guard_num_txt_file: str = os.path.join(self.work_dir, "guard_num.txt")
         if not os.path.exists(self.guard_num_txt_file):
             with open(self.guard_num_txt_file, "a") as f:
-                f.write("query_time,total_num,governor_num,supervisor_num,captain_num\n\n")
+                f.write("query_time,total_num,governor_num,supervisor_num,captain_num\n")
 
         self.charge_num_txt_file: str = os.path.join(self.work_dir, "charge_num.txt")
         if not os.path.exists(self.charge_num_txt_file):
             with open(self.charge_num_txt_file, "a") as f:
-                f.write("query_time,charge_num\n\n")
+                f.write("query_time,charge_num\n")
 
         self.address_excel_file: str = os.path.join(self.work_dir, "address.xlsx")
         if not os.path.exists(self.address_excel_file):
@@ -211,7 +212,7 @@ class BiliUser(bau.User, bal.LiveRoom):
         self.address_unreceived_txt_file: str = os.path.join(self.work_dir, "address_unreceived.txt")
         if not os.path.exists(self.address_unreceived_txt_file):
             with open(self.address_unreceived_txt_file, "a") as f:
-                f.write("uid,bili_name\n\n")
+                f.write("uid,bili_name\n")
 
     @wlw.async_separate()
     async def get_upload_videos(self):
@@ -272,30 +273,36 @@ class BiliUser(bau.User, bal.LiveRoom):
         else:
             self.log.info(f"开始获取用户 {self.uid} 的舰长数...")
         guard_info: dict = await self.get_dahanghai(page=1)
-        total_page: int = guard_info['info']['page']  # TODO: need to check guard_info is not empty
+        pprint.pprint(guard_info)
+        total_page: int = guard_info['info']['page']
         guard_num: int = guard_info['info']['num']
-        governor_num: int = 0
-        supervisor_num: int = 0
-        flag: bool = True
-        for elem in guard_info['top3']:
-            if elem['guard_level'] == 1:
-                governor_num += 1
-            elif elem['guard_level'] == 2:
-                supervisor_num += 1
-            elif elem['guard_level'] == 3:
-                flag = False
-                break
-        if flag:
-            for i in range(1, total_page + 1):
-                guard_info: dict = await self.get_dahanghai(page=i)
-                for elem in guard_info['list']:
-                    if elem['guard_level'] == 1:
-                        governor_num += 1
-                    elif elem['guard_level'] == 2:
-                        supervisor_num += 1
-                    elif elem['guard_level'] == 3:
-                        break
-        captain_num: int = guard_num - governor_num - supervisor_num
+        if guard_num == 0:
+            governor_num: int = 0
+            supervisor_num: int = 0
+            captain_num: int = 0
+        else:
+            governor_num: int = 0
+            supervisor_num: int = 0
+            flag: bool = True
+            for elem in guard_info['top3']:
+                if elem['guard_level'] == 1:
+                    governor_num += 1
+                elif elem['guard_level'] == 2:
+                    supervisor_num += 1
+                elif elem['guard_level'] == 3:
+                    flag = False
+                    break
+            if flag:
+                for i in range(1, total_page + 1):
+                    guard_info: dict = await self.get_dahanghai(page=i)
+                    for elem in guard_info['list']:
+                        if elem['guard_level'] == 1:
+                            governor_num += 1
+                        elif elem['guard_level'] == 2:
+                            supervisor_num += 1
+                        elif elem['guard_level'] == 3:
+                            break
+            captain_num: int = guard_num - governor_num - supervisor_num
         with open(self.guard_num_txt_file, "a") as f:
             f.write(f"{time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime(now_time))},{guard_num},{governor_num},"
                     f"{supervisor_num},{captain_num}\n")
@@ -334,14 +341,24 @@ class BiliUser(bau.User, bal.LiveRoom):
         msg: str = "请按以下顺序输入地址信息：收件人，电话，地址。每项之间换行。示例：\n收件人：图图\n电话：123456\n地址：翻斗花园"
         guard_info: dict = await self.get_dahanghai(page=1)
         total_page: int = guard_info['info']['page']
+        guard_num: int = guard_info['info']['num']
+
+        if guard_num == 0:
+            if language == "en":
+                self.log.warning("There is currently no guard!")
+            else:
+                self.log.warning("当前没有舰长！")
+            return
+
         for elem in guard_info['top3']:
             target_uid: int = elem['uid']
             await session.send_msg(self.credential, target_uid, "1", msg)
         for i in range(1, total_page + 1):
-            guard_info: dict = await self.get_dahanghai(page=i)  # TODO: need to check guard_info is not empty
+            guard_info: dict = await self.get_dahanghai(page=i)
             for elem in guard_info['list']:
                 target_uid: int = elem['uid']
                 await session.send_msg(self.credential, target_uid, "1", msg)
+
         if language == "en":
             self.log.info(f"Send successfully.")
         else:
@@ -365,23 +382,38 @@ class BiliUser(bau.User, bal.LiveRoom):
 
         receive_flag: bool = False
         count: int = 0
-        guard_info: dict = await self.get_dahanghai(page=1)  # TODO: need to check guard_info is not empty
+        guard_info: dict = await self.get_dahanghai(page=1)
         total_page: int = guard_info['info']['page']
         guard_num: int = guard_info['info']['num']
+        if guard_num == 0:
+            if language == "en":
+                self.log.warning("There is currently no guard!")
+            else:
+                self.log.warning("当前没有舰长！")
+            return
+
+        guard_list: list[dict] = []
         for elem in guard_info['top3']:
+            guard_list.append(elem)
+        for i in range(1, total_page + 1):
+            guard_info: dict = await self.get_dahanghai(page=i)
+            for elem in guard_info['list']:
+                guard_list.append(elem)
+
+        for elem in guard_list:
             target_uid: int = elem['uid']
             target_name: str = elem['username']
             receive_info = await session.fetch_session_msgs(target_uid, self.credential)
             msg_list: list[dict] = receive_info['messages']
             for msg_dict in msg_list:
                 content: list[str] = eval(msg_dict['content'])['content'].split("\n")
-                temp_flag: bool = await _address_mag_simple_check(content)
+                temp_flag: bool = await _address_msg_simple_check(content)
                 if temp_flag:
                     line: DataFrame = pd.DataFrame({"uid": target_uid,
                                                     "bili_name": target_name,
-                                                    "收件人": content[0].split("：")[1],
-                                                    "电话": content[1].split("：")[1],
-                                                    "地址": content[2].split("：")[1]},
+                                                    "收件人": content[0].split("：")[-1],
+                                                    "电话": content[1].split("：")[-1],
+                                                    "地址": content[2].split("：")[-1]},
                                                    index=[0])
                     self.address_excel = pd.concat([self.address_excel, line], ignore_index=True, axis=0)
                     self.address_excel.to_excel(self.address_excel_file, index=False)
@@ -393,43 +425,22 @@ class BiliUser(bau.User, bal.LiveRoom):
                 with open(self.address_unreceived_txt_file, "a") as f:
                     f.write(f"{target_uid},{target_name}\n")
             receive_flag = False
-        for i in range(1, total_page + 1):
-            guard_info: dict = await self.get_dahanghai(page=i)
-            for elem in guard_info['list']:
-                target_uid: int = elem['uid']
-                target_name: str = elem['username']
-                receive_info = await session.fetch_session_msgs(target_uid, self.credential)
-                msg_list: list[dict] = receive_info['messages']
-                for msg_dict in msg_list:
-                    content: list[str] = eval(msg_dict['content'])['content'].split("\n")
-                    temp_flag: bool = await _address_mag_simple_check(content)
-                    if temp_flag:
-                        line: DataFrame = pd.DataFrame({"uid": target_uid,
-                                                        "bili_name": target_name,
-                                                        "收件人": content[0].split("：")[1],
-                                                        "电话": content[1].split("：")[1],
-                                                        "地址": content[2].split("：")[1]},
-                                                       index=[0])
-                        self.address_excel = pd.concat([self.address_excel, line], ignore_index=True, axis=0)
-                        self.address_excel.to_excel(self.address_excel_file, index=False)
-                        self.address_excel = pd.read_excel(self.address_excel_file)
-                        count += 1
-                        receive_flag = True
-                        break
-                if not receive_flag:
-                    with open(self.address_unreceived_txt_file, "a") as f:
-                        f.write(f"{target_uid},{target_name}\n")
-                receive_flag = False
+
         if count == guard_num:
             if language == "en":
                 self.log.info(f"Receive successfully. All addresses have been received, but may still contain invalid "
-                              f"addresses that require manual inspection.")
+                              f"addresses that require manual inspection. The address of the guard is recorded in "
+                              f"{self.address_excel_file}.")
             else:
-                self.log.info(f"接收成功。已经接收到所有地址，但仍可能需要人工检查是否含有无效地址。")
+                self.log.info(f"接收成功。已经接收到所有地址，但仍可能需要人工检查是否含有无效地址。地址记录在 "
+                              f"{self.address_excel_file} 。")
         else:
             if language == "en":
-                self.log.warning(f"Receive successfully. But only {count} address messages were received in total. "
-                                 f"Guard whose address is not receives are recorded in {self.address_unreceived_txt_file}.")
+                self.log.warning(f"Receive successfully. But only {count} / {guard_num} address messages were received "
+                                 f"in total. Guard whose address is not receives are recorded in "
+                                 f"{self.address_unreceived_txt_file}. The address of the guard is recorded in "
+                                 f"{self.address_excel_file}.")
             else:
-                self.log.warning(f"接收成功。但总共只接收到了{count}个地址信息。"
-                                 f"未接收到地址信息的舰长记录在 {self.address_unreceived_txt_file} 中。")
+                self.log.warning(f"接收成功。但总共只接收到了 {count} / {guard_num} 个地址信息。"
+                                 f"未接收到地址信息的舰长记录在 {self.address_unreceived_txt_file} 中。地址记录在 "
+                                 f"{self.address_excel_file} 。")

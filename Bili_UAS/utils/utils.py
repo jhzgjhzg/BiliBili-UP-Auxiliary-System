@@ -9,7 +9,7 @@ from __future__ import annotations
 import pandas as pd
 from bilibili_api import Danmaku
 from pandas import DataFrame
-from typing import Union
+from typing import Optional
 
 
 class BiliVideoReply(object):
@@ -87,9 +87,9 @@ class BiliLiveDanmu(object):
         # the parsing is not high, and there may be bugs in the future.
         # But this is Bilibili's problem.
         self.log_file: str = log
-        self.content: Union[str, None] = None
-        self.time: Union[int, None] = None
-        self.user_uid: Union[int, None] = None
+        self.content: Optional[str] = None
+        self.time: Optional[int] = None
+        self.user_uid: Optional[int] = None
 
     async def load_from_api(self, data: dict) -> None:
         """
@@ -140,12 +140,12 @@ class BiliLiveGift(object):
             log: log file path
         """
         self.log_file: str = log
-        self.gift_name: Union[str, None] = None
-        self.gift_id: Union[int, None] = None
-        self.number: Union[int, None] = None
-        self.price: Union[float, None] = None  # unit: RMB
-        self.time: Union[int, None] = None
-        self.user_uid: Union[int, None] = None
+        self.gift_name: Optional[str] = None
+        self.gift_id: Optional[int] = None
+        self.number: Optional[int] = None
+        self.price: Optional[float] = None  # unit: RMB
+        self.time: Optional[int] = None
+        self.user_uid: Optional[int] = None
 
     async def load_from_api(self, data: dict) -> None:
         """
@@ -158,6 +158,8 @@ class BiliLiveGift(object):
         self.gift_id: int = data['data']['data']['giftId']
         self.number: int = data['data']['data']['num']
         self.price: float = data['data']['data']['total_coin'] * 0.001
+        self.time: int = int(data['data']['data']['timestamp'])
+        self.user_uid: int = data['data']['data']['uid']
 
     async def to_excel(self, excel_file: str, excel: DataFrame) -> None:
         """
@@ -203,11 +205,11 @@ class BiliLiveSC(object):
             log: log file path
         """
         self.log_file: str = log
-        self.content: Union[str, None] = None
-        self.price: Union[float, None] = None  # unit: RMB
-        self.time: Union[int, None] = None
-        self.user_uid: Union[int, None] = None
-        self.gift_id: Union[int, None] = None
+        self.content: Optional[str] = None
+        self.price: Optional[float] = None  # unit: RMB
+        self.time: Optional[int] = None
+        self.user_uid: Optional[int] = None
+        self.gift_id: Optional[int] = None
 
     async def load_from_api(self, data: dict) -> None:
         """
@@ -264,12 +266,12 @@ class BiliLiveGuard(object):
             log: log file path
         """
         self.log_file: str = log
-        self.guard_level: Union[int, None] = None
-        self.gift_id: Union[int, None] = None
-        self.guard_name: Union[str, None] = None
-        self.time: Union[int, None] = None
-        self.price: Union[float, None] = None  # unit: RMB
-        self.user_uid: Union[int, None] = None
+        self.guard_level: Optional[int] = None
+        self.gift_id: Optional[int] = None
+        self.guard_name: Optional[str] = None
+        self.time: Optional[int] = None
+        self.price: Optional[float] = None  # unit: RMB
+        self.user_uid: Optional[int] = None
 
     async def load_from_api(self, data: dict) -> None:
         """
@@ -316,3 +318,28 @@ class BiliLiveGuard(object):
         self.time: int = int(data['time'])
         self.price: float = float(data['price'])
         self.user_uid: int = int(data['user_uid'])
+
+
+class BiliLiveRevenue(object):
+    """
+    Bilibili live revenue class.
+    """
+
+    def __init__(self, log: str):
+        """
+        Args:
+            log: log file path
+        """
+        self.uid: Optional[int] = None
+        self.time: Optional[int] = None
+        self.price: Optional[float] = None  # unit: RMB
+        self.log_file: str = log
+
+    def load_from_txt(self, data: str):
+        """
+        Load revenue information from txt file.
+        """
+        data_list: list[str] = data.split(",")
+        self.uid: int = int(data_list[0])
+        self.time: int = int(data_list[1])
+        self.price: float = float(data_list[2])

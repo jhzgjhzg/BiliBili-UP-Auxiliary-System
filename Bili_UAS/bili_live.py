@@ -8,15 +8,16 @@ This module provides a command line interface for monitoring the live broadcast 
 from __future__ import annotations
 from Bili_UAS.utils import config_utils as ucu
 from Bili_UAS.utils import live_utils as ulu, user_utils as uuu
-from typing import Union
+from typing import Union, Optional
 from Bili_UAS.writer import log_writer as wlw, abnormal_monitor as wam
 import os
 from bilibili_api import sync
 from Bili_UAS.scripts import log_in as sli
 from Bili_UAS.cli import live_cli as clc
 import tyro
-import matplotlib.pyplot as plt
 from numpy import typing as npt
+import cv2 as cv
+import numpy as np
 
 
 def sync_tyro_main(config: Union[clc.BiliLiveConfigAuto, clc.BiliLiveConfigMonitor, clc.BiliLiveConfigProcess]) -> None:
@@ -29,7 +30,7 @@ def sync_tyro_main(config: Union[clc.BiliLiveConfigAuto, clc.BiliLiveConfigMonit
     language: str = ucu.load_language_from_txt()
     work_dir: str = sync(ucu.load_work_dir_from_txt())
     log_output: str = os.path.join(work_dir, "log")
-    log_file: str = os.path.join(log_output, "live_log.txt")
+    log_file: str = os.path.join(log_output, "live_log")
 
     file_handler: wlw.Handler = wlw.Handler("file")
     file_handler.set_level("WARNING", "ERROR")
@@ -48,16 +49,12 @@ def sync_tyro_main(config: Union[clc.BiliLiveConfigAuto, clc.BiliLiveConfigMonit
 
     if isinstance(config, clc.BiliLiveConfigAuto):
         if language == "en":
-            log.warning("The setting mode is 'auto', and in this mode, 'auto_disconnect', 'danmu_disconnect', and "
-                        "'robust' are set to true, and data processing is automatically performed after disconnecting "
-                        "the live streaming connection!")
+            log.warning("Set the mode to 'auto', in this mode, data monitoring will be turned on and the data will "
+                        "be processed automatically after the monitoring is finished. This mode is long-link mode and "
+                        "requires the use of ctrl + c to exit the program.")
         else:
-            log.warning("设置模式为 'auto'，在此模式下，'auto_disconnect'、'danmu_disconnect'、'robust' 被设置为True，"
-                        "且在断开直播连接后自动进行数据处理！")
-
-        config.auto_disconnect = True
-        config.danmu_disconnect = True
-        config.robust = True
+            log.warning("设置模式为 ‘auto’，在此模式下，将开启数据监控，且在监控结束后自动处理数据。此模式为长连模式，需要使用"
+                        "ctrl + c 退出程序。")
 
         if config.user_id is None:
             if config.live_id is None:
@@ -66,19 +63,23 @@ def sync_tyro_main(config: Union[clc.BiliLiveConfigAuto, clc.BiliLiveConfigMonit
                 else:
                     raise wam.ParameterInputError("user_id 和 live_id 必须输入其中之一！")
 
-        if config.user_id is not None:
+        if config.user_id is not None and config.live_id is None:
             user = uuu.BiliUser(uid=config.user_id, log=log_file, work_dir=work_dir, credential=credential)
             config.live_id = user.room_id
 
         live_monitor = ulu.BiliLiveMonitor(config.live_id, log_file, work_dir, config.max_retry,
                                            config.retry_after, credential)
-        sync(live_monitor.load_danmu_mark())
-        mask: npt.NDArray = plt.imread(config.mask)
-
+        sync(live_monitor.init_all())
         sync(live_monitor.monitor(config.save_all_danmu, config.danmu_disconnect, config.auto_disconnect))
-        live_process = ulu.BiliLiveProcess(log_file, live_monitor.work_dir)
-        sync(live_process.analysis(config.revenue_interval, config.danmu_interval, config.robust,
-                                   config.robust_interval, mask))
+
+        if config.mask is not None:
+            mask: Optional[npt.NDArray] = cv.imread(config.mask)
+        else:
+            mask = None
+        live_process = ulu.BiliLiveProcess(live_monitor.work_dir, log_file)
+        sync(live_process.analysis(config.robust, config.robust_interval, config.danmu_interval, mask,
+                                   config.revenue_interval, config.view_interval))
+        live_process.clean_todo_file()
 
         while config.forever:
             if language == "en":
@@ -86,9 +87,10 @@ def sync_tyro_main(config: Union[clc.BiliLiveConfigAuto, clc.BiliLiveConfigMonit
             else:
                 log.warning("设置为长连直播间，要退出程序，请使用ctrl + c。")
             sync(live_monitor.monitor(config.save_all_danmu, config.danmu_disconnect, config.auto_disconnect))
-            live_process = ulu.BiliLiveProcess(log_file, live_monitor.work_dir)
-            sync(live_process.analysis(config.revenue_interval, config.danmu_interval, config.robust,
-                                       config.robust_interval, mask))
+            live_process = ulu.BiliLiveProcess(live_monitor.work_dir, log_file)
+            sync(live_process.analysis(config.robust, config.robust_interval, config.danmu_interval, mask,
+                                       config.revenue_interval, config.view_interval))
+            live_process.clean_todo_file()
 
     elif isinstance(config, clc.BiliLiveConfigMonitor):
         if language == "en":
@@ -104,15 +106,15 @@ def sync_tyro_main(config: Union[clc.BiliLiveConfigAuto, clc.BiliLiveConfigMonit
                 else:
                     raise wam.ParameterInputError("user_id 和 live_id 必须输入其中之一！")
 
-        if config.user_id is not None:
+        if config.user_id is not None and config.live_id is None:
             user = uuu.BiliUser(uid=config.user_id, log=log_file, work_dir=work_dir, credential=credential)
             config.live_id = user.room_id
 
         live_monitor = ulu.BiliLiveMonitor(config.live_id, log_file, work_dir, config.max_retry,
                                            config.retry_after, credential)
-        sync(live_monitor.load_danmu_mark())
-
+        sync(live_monitor.init_all())
         sync(live_monitor.monitor(config.save_all_danmu, config.danmu_disconnect, config.auto_disconnect))
+
         while config.forever:
             if language == "en":
                 log.warning("Long connecting live room. To exit the program, please use ctrl + c.")
@@ -133,12 +135,13 @@ def sync_tyro_main(config: Union[clc.BiliLiveConfigAuto, clc.BiliLiveConfigMonit
                 raise wam.ParameterInputError("没有指定数据文件夹！")
 
         if config.mask is not None:
-            mask: npt.NDArray = plt.imread(config.mask)
+            mask: Optional[npt.NDArray] = cv.imread(config.mask).astype(np.uint8)
         else:
             mask = None
-        live_process = ulu.BiliLiveProcess(log_file, config.data_dir)
-        sync(live_process.analysis(config.revenue_interval, config.danmu_interval, config.robust,
-                                   config.robust_interval, mask))
+        live_process = ulu.BiliLiveProcess(config.data_dir, log_file)
+        sync(live_process.analysis(config.robust, config.robust_interval, config.danmu_interval, mask,
+                                   config.revenue_interval, config.view_interval))
+        live_process.clean_todo_file()
 
 
 def tyro_cli() -> None:

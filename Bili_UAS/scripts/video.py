@@ -10,15 +10,13 @@ from typing import Union
 import jieba
 import wordcloud
 import pandas as pd
-from Bili_UAS.utils import video_utils as uvu
+from Bili_UAS.utils import video_utils as uvu, live_utils as ulu
 from numpy import typing as npt
 from bilibili_api import Credential
 from Bili_UAS.utils.config_utils import load_language_from_txt
 from Bili_UAS.writer import log_writer as wlw
 import enum
 import os
-from dataclasses import dataclass
-import tyro
 
 
 language: str = load_language_from_txt()
@@ -67,46 +65,84 @@ async def word_cloud(video_id: Union[str, int],
         video = uvu.BiliVideo(log=log_file, aid=video_id, credential=credential, work_dir=work_dir)
     else:
         video = uvu.BiliVideo(log=log_file, bvid=video_id, credential=credential, work_dir=work_dir)
+    await video.init_all()
 
     if language == "en":
         log.info("Starting to generate word cloud image...")
     else:
         log.info("开始生成词云图片...")
     if mode == WordCloudContent.REPLY:
-        save_path: str = os.path.join(video.work_dir, "reply_word_cloud.jpg")
+        save_path: str = os.path.join(video.work_dir, "reply_word_cloud.png")
+        if os.path.exists(save_path):
+            if language == "en":
+                log.warning("Word cloud image already exists! To regenerate, enter [y/Y].")
+                flag: str = input()
+            else:
+                log.warning("词云图片已存在！如需重新生成，请输入[y/Y]。")
+                flag: str = input()
+            if flag == "y" or flag == "Y":
+                pass
+            else:
+                return
 
         reply_content: str = ""
         await video.get_replies(sec=sec)
         await video.reply_robust_process()
         for elem in video.robust_replies:
             reply_content += elem.content
-            reply_content += " "
+            reply_content += "。"
 
         words: list[str] = jieba.lcut(reply_content)
         word_freq = pd.Series(words).value_counts()
-        wc = wordcloud.WordCloud(font_path='PingFang.ttc', background_color='white', mask=mask)
-        wc.generate_from_frequencies(word_freq)
+        wf: dict[str, float] = word_freq.to_dict()
+        wf = await ulu.chinese_content_process(wf)
+        wc = wordcloud.WordCloud(font_path='PingFang.ttc', background_color='white', mask=mask, height=675, width=1080)
+        wc.generate_from_frequencies(wf)
         image = wc.to_image()
         image.save(save_path, quality=100)
 
     elif mode == WordCloudContent.DANMU:
-        save_path: str = os.path.join(video.work_dir, "danmu_word_cloud.jpg")
+        save_path: str = os.path.join(video.work_dir, "danmu_word_cloud.png")
+        if os.path.exists(save_path):
+            if language == "en":
+                log.warning("Word cloud image already exists! To regenerate, enter [y/Y].")
+                flag: str = input()
+            else:
+                log.warning("词云图片已存在！如需重新生成，请输入[y/Y]。")
+                flag: str = input()
+            if flag == "y" or flag == "Y":
+                pass
+            else:
+                return
 
         danmu_content: str = ""
         await video.get_danmu()
         for elem in video.danmu:
             danmu_content += elem.content
-            danmu_content += " "
+            danmu_content += "。"
 
         words: list[str] = jieba.lcut(danmu_content)
         word_freq = pd.Series(words).value_counts()
-        wc = wordcloud.WordCloud(font_path='PingFang.ttc', background_color='white', mask=mask)
-        wc.generate_from_frequencies(word_freq)
+        wf: dict[str, float] = word_freq.to_dict()
+        wf = await ulu.chinese_content_process(wf)
+        wc = wordcloud.WordCloud(font_path='PingFang.ttc', background_color='white', mask=mask, height=675, width=1080)
+        wc.generate_from_frequencies(wf)
         image = wc.to_image()
         image.save(save_path, quality=100)
 
     else:
-        save_path: str = os.path.join(video.work_dir, "reply_and_danmu_word_cloud.jpg")
+        save_path: str = os.path.join(video.work_dir, "reply_and_danmu_word_cloud.png")
+        if os.path.exists(save_path):
+            if language == "en":
+                log.warning("Word cloud image already exists! To regenerate, enter [y/Y].")
+                flag: str = input()
+            else:
+                log.warning("词云图片已存在！如需重新生成，请输入[y/Y]。")
+                flag: str = input()
+            if flag == "y" or flag == "Y":
+                pass
+            else:
+                return
 
         content: str = ""
         await video.get_replies(sec=sec)
@@ -114,15 +150,17 @@ async def word_cloud(video_id: Union[str, int],
         await video.get_danmu()
         for elem in video.robust_replies:
             content += elem.content
-            content += " "
+            content += "。"
         for elem in video.danmu:
             content += elem.content
-            content += " "
+            content += "。"
 
         words: list[str] = jieba.lcut(content)
         word_freq = pd.Series(words).value_counts()
-        wc = wordcloud.WordCloud(font_path='PingFang.ttc', background_color='white', mask=mask)
-        wc.generate_from_frequencies(word_freq)
+        wf: dict[str, float] = word_freq.to_dict()
+        wf = await ulu.chinese_content_process(wf)
+        wc = wordcloud.WordCloud(font_path='PingFang.ttc', mask=mask, background_color='white', height=675, width=1080)
+        wc.generate_from_frequencies(wf)
         image = wc.to_image()
         image.save(save_path, quality=100)
 

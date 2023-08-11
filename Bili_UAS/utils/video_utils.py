@@ -13,11 +13,11 @@ from Bili_UAS.writer import log_writer as wlw
 import time
 import copy
 import re
-from bilibili_api import Credential, video as bav, sync, Danmaku, comment as bac, HEADERS
+from bilibili_api import Credential, video as bav, Danmaku, comment as bac, HEADERS
 import pandas as pd
 from pandas import DataFrame
 import os
-from typing import Union
+from typing import Optional
 import httpx
 import enum
 
@@ -82,9 +82,9 @@ class BiliVideo(bav.Video):
     def __init__(self,
                  log: str,
                  work_dir: str,
-                 credential: Union[Credential, None] = None,
-                 aid: Union[int, None] = None,
-                 bvid: Union[str, None] = None) -> None:
+                 credential: Optional[Credential] = None,
+                 aid: Optional[int] = None,
+                 bvid: Optional[str] = None) -> None:
         """
         Either aid or bvid must be filled in.
 
@@ -101,39 +101,38 @@ class BiliVideo(bav.Video):
         self.p_cid: list[int] = []
         self.p_time: list[int] = []
 
-        self.publish_time: Union[int, None] = None
-        self.total_time: Union[int, None] = None
-        self.view: Union[int, None] = None
-        self.like: Union[int, None] = None
-        self.coin: Union[int, None] = None
-        self.favorite: Union[int, None] = None
-        self.share: Union[int, None] = None
-        self.history_rank: Union[int, None] = None
-        self.reply_num: Union[int, None] = None
-        self.danmu_num: Union[int, None] = None
-        self.copyright: Union[int, None] = None
-        self.reprint_sign: Union[int, None] = None
-        self.up_uid: Union[int, None] = None
-        self.tag_use_mean: Union[int, None] = None
-        self.tag_use_min: Union[int, None] = None
-        self.tag_use_max: Union[int, None] = None
-        self.tag_follow_mean: Union[int, None] = None
-        self.tag_follow_min: Union[int, None] = None
-        self.tag_follow_max: Union[int, None] = None
+        self.publish_time: Optional[int] = None
+        self.total_time: Optional[int] = None
+        self.view: Optional[int] = None
+        self.like: Optional[int] = None
+        self.coin: Optional[int] = None
+        self.favorite: Optional[int] = None
+        self.share: Optional[int] = None
+        self.history_rank: Optional[int] = None
+        self.reply_num: Optional[int] = None
+        self.danmu_num: Optional[int] = None
+        self.copyright: Optional[int] = None
+        self.reprint_sign: Optional[int] = None
+        self.up_uid: Optional[int] = None
+        self.tag_use_mean: Optional[int] = None
+        self.tag_use_min: Optional[int] = None
+        self.tag_use_max: Optional[int] = None
+        self.tag_follow_mean: Optional[int] = None
+        self.tag_follow_min: Optional[int] = None
+        self.tag_follow_max: Optional[int] = None
 
         self.replies: list[BiliVideoReply] = []
         self.robust_replies: list[BiliVideoReply] = []
         self.danmu: list[BiliVideoDanmu] = []
         self.tags: list[BiliVideoTag] = []
 
-        self.work_dir: Union[str, None] = None
-        self.info_excel_file: Union[str, None] = None
-        self.info_excel: Union[DataFrame, None] = None
+        self.work_dir: Optional[str] = None
+        self.info_excel_file: Optional[str] = None
+        self.info_excel: Optional[DataFrame] = None
 
         self.log_file: str = log
-        self.log: Union[wlw.Logger, None] = None
+        self.log: Optional[wlw.Logger] = None
         self.__set_log()
-        self.__p_video_init()
         self.__load_work_dir(work_dir)
 
     def __set_log(self) -> None:
@@ -151,11 +150,11 @@ class BiliVideo(bav.Video):
         self.log.add_config(file_handler)
         self.log.add_config(sys_handler)
 
-    def __p_video_init(self) -> None:
+    async def __p_video_init(self) -> None:
         """
         Obtain sub video information, including id and video time.
         """
-        p_info: list[dict] = sync(self.get_pages())
+        p_info: list[dict] = await self.get_pages()
         if p_info:
             for page in p_info:
                 self.p_cid.append(page['cid'])
@@ -165,6 +164,12 @@ class BiliVideo(bav.Video):
                 self.log.warning("Failed to obtain sub video ID, which may affect subsequent operations!")
             else:
                 self.log.warning("未获取到分P视频ID, 这可能会影响后续操作!")
+
+    async def init_all(self) -> None:
+        """
+        Initialize all data that cannot be obtained synchronously.
+        """
+        await self.__p_video_init()
 
     def __load_work_dir(self, work_dir: str) -> None:
         """
@@ -453,6 +458,22 @@ class BiliVideo(bav.Video):
         if self.p_cid:
             ffmpeg_path = await load_ffmpeg_path_from_txt()
             for pid in self.p_cid:
+
+                if mode == VideoDownloadMode.VIDEO:
+                    if os.path.exists(os.path.join(self.work_dir, f"{pid}.mp4")):
+                        if language == "en":
+                            self.log.info(f"{pid} video has been downloaded.")
+                        else:
+                            self.log.info(f"{pid} 视频已下载.")
+                        continue
+                else:
+                    if os.path.exists(os.path.join(self.work_dir, f"{pid}.mp3")):
+                        if language == "en":
+                            self.log.info(f"{pid} audio has been downloaded.")
+                        else:
+                            self.log.info(f"{pid} 音频已下载.")
+                        continue
+
                 p_url_info: dict = await self.get_download_url(cid=pid)
                 detector = bav.VideoDownloadURLDataDetecter(data=p_url_info)
                 streams = detector.detect_best_streams()
@@ -486,7 +507,7 @@ class BiliVideo(bav.Video):
                             self.log.info("Converting audio format...")
                         else:
                             self.log.info("正在转换音频格式...")
-                        os.system(f"{ffmpeg_path} -i {temp_flv} -vn -acodec copy {mp3_audio_out}")
+                        os.system(f"{ffmpeg_path} -i {temp_flv} -vn -acodec libmp3lame -aq 0 {mp3_audio_out}")
 
                         os.remove(temp_flv)
                         if language == "en":
@@ -526,10 +547,16 @@ class BiliVideo(bav.Video):
                             self.log.info("Converting audio format...")
                         else:
                             self.log.info("正在转换音频格式...")
-                        os.system(f"{ffmpeg_path} -i {temp_m4s_audio} -acodec copy {mp3_audio_out}")
+                        os.system(f"{ffmpeg_path} -i {temp_m4s_audio} -acodec libmp3lame -aq 0 {mp3_audio_out}")
 
                         os.remove(temp_m4s_audio)
                         if language == "en":
                             self.log.info(f"{pid} audio download successfully.")
                         else:
                             self.log.info(f"{pid} 音频下载成功.")
+
+        else:
+            if language == "en":
+                self.log.warning("The sub video id is missing, cannot download!")
+            else:
+                self.log.warning("缺少分p视频id，无法下载！")

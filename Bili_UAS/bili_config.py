@@ -34,7 +34,7 @@ def sync_tyro_main(work_dir: str,
 
     work_dir: str = sync(ucu.load_work_dir_from_txt())
     log_output: str = os.path.join(work_dir, "log")
-    log_file: str = os.path.join(log_output, "config_log.txt")
+    log_file: str = os.path.join(log_output, "config_log")
 
     file_handler: wlw.Handler = wlw.Handler("file")
     file_handler.set_level("WARNING", "ERROR")

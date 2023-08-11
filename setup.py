@@ -4,7 +4,7 @@ with open("README.md", "r", encoding="utf-8") as f:
     long_description = f.read()
 
 requirements = [
-    'bilibili-api-python~=15.5.1',
+    'bilibili-api-python~=15.5.2',
     'setuptools~=68.0.0',
     'wordcloud~=1.9.2',
     'jieba~=0.42.1',
@@ -18,11 +18,12 @@ requirements = [
     'apscheduler~=3.10.1',
     'requests~=2.31.0',
     'httpx~=0.24.1',
-    'openpyxl~=3.1.2']
+    'openpyxl~=3.1.2',
+    'opencv-python~=4.8.0.74']
 
 setup(
     name='bili-uas',
-    version='0.2.3',
+    version='0.3.0',
     license='GPLv3',
     author='jhzg',
     author_email='jhzg02200059@163.com',
@@ -45,7 +46,6 @@ setup(
               'Bili_UAS.writer',
               'Bili_UAS.scripts'],
     package_data={'': ['*.txt', '*.md', 'LICENSE', 'setup.py', 'requirements.txt', '.gitignore']},
-    exclude_package_data={'': ['test/*.py', 'test']},
     include_package_data=True,
     python_requires='>=3.9',
     install_requires=requirements,

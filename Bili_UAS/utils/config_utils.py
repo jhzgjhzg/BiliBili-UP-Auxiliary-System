@@ -15,7 +15,7 @@ def load_language_from_txt() -> str:
     Returns:
         the language
     """
-    config_file: str = ".language.txt"
+    config_file: str = ".language"
     if not os.path.exists(config_file):
         return "en"
     else:
@@ -31,7 +31,7 @@ async def load_work_dir_from_txt() -> str:
     Returns:
         the work directory
     """
-    config_file: str = ".work_dir.txt"
+    config_file: str = ".work_dir"
     language: str = load_language_from_txt()
     if not os.path.exists(config_file):
         if language == "en":
@@ -55,7 +55,7 @@ async def load_ffmpeg_path_from_txt() -> str:
     Returns:
         the path of ffmpeg
     """
-    ffmpeg_file: str = ".ffmpeg.txt"
+    ffmpeg_file: str = ".ffmpeg"
     language: str = load_language_from_txt()
     if not os.path.exists(ffmpeg_file):
         if language == "en":

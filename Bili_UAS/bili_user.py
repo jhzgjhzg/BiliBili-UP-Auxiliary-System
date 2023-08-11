@@ -27,8 +27,8 @@ def sync_tyro_main(config: Union[cuc.BiliUserConfigUpdate, cuc.BiliUserConfigAdd
         config: configuration
     """
     work_dir: str = sync(ucu.load_work_dir_from_txt())
-    log_output: str = os.path.join(work_dir, "../test")
-    log_file: str = os.path.join(log_output, "user_log.txt")
+    log_output: str = os.path.join(work_dir, "log")
+    log_file: str = os.path.join(log_output, "user_log")
 
     file_handler: wlw.Handler = wlw.Handler("file")
     file_handler.set_level("WARNING", "ERROR")
@@ -52,7 +52,14 @@ def sync_tyro_main(config: Union[cuc.BiliUserConfigUpdate, cuc.BiliUserConfigAdd
             else:
                 raise wam.ParameterInputError("用户名和uid必须输入其中之一！")
 
-    if config.uid is None:
+    if config.uid is not None:
+        if not config.uid.isdigit():
+            if language == "en":
+                raise wam.ParameterInputError("uid must be a number!")
+            else:
+                raise wam.ParameterInputError("uid必须为数字！")
+
+    else:
         try:
             uid_info: dict = sync(bau.name2uid(config.name))
             config.uid = uid_info['uid_list'][0]['uid']

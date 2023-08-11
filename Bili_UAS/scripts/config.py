@@ -17,7 +17,7 @@ async def save_work_dir_to_txt(work_dir: str, language: str) -> None:
         work_dir: working directory of program
         language: the language of program prompts
     """
-    work_dir_file: str = ".work_dir.txt"
+    work_dir_file: str = ".work_dir"
     output_dir: str = os.path.join(os.path.abspath(work_dir), "Bili_UAS_Output")
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
@@ -50,7 +50,7 @@ async def save_danmu_mark_to_txt(danmu_mark: list[str], language: str) -> None:
         danmu_mark: danmu mark list
         language: the language of program prompts
     """
-    danmu_mark_file: str = ".danmu_mark.txt"
+    danmu_mark_file: str = ".danmu_mark"
     with open(danmu_mark_file, "w") as f:
         for mark in danmu_mark:
             f.write(mark + "\n")
@@ -68,7 +68,7 @@ async def save_ffmpeg_path_to_txt(ffmpeg_path: str, language: str) -> None:
         ffmpeg_path: the path of ffmpeg
         language: the language of program prompts
     """
-    ffmpeg_file: str = ".ffmpeg.txt"
+    ffmpeg_file: str = ".ffmpeg"
     with open(ffmpeg_file, "w") as f:
         f.write(ffmpeg_path + "\n")
     if language == "en":
@@ -84,7 +84,7 @@ async def save_language_to_txt(language: str) -> None:
     Args:
         language: the language of program prompts
     """
-    language_file: str = ".language.txt"
+    language_file: str = ".language"
     with open(language_file, "w") as f:
         f.write(language + "\n")
     if language == "en":

@@ -6,7 +6,7 @@ This module provides the function to log in to Bilibili, save and read credentia
 
 
 from __future__ import annotations
-from bilibili_api import login, user, Credential
+from bilibili_api import login, user, Credential, sync
 from bilibili_api import settings
 from bilibili_api.exceptions import (CredentialNoBiliJctException, CredentialNoSessdataException,
                                      CredentialNoBuvid3Exception, CredentialNoDedeUserIDException)
@@ -17,6 +17,7 @@ from Bili_UAS.writer import log_writer as wlw
 from Bili_UAS.utils.config_utils import load_language_from_txt
 import enum
 from typing import Union
+import getpass
 
 
 language: str = load_language_from_txt()
@@ -110,7 +111,7 @@ async def save_credential_by_parm_to_json(sessdata: str,
                                           buvid3: str,
                                           dedeuserid: str,
                                           ac_time_value: str,
-                                          log_file: str) -> None:
+                                          log_file: str) -> bool:
     """
     Save credential parameters to json file.
 
@@ -121,6 +122,9 @@ async def save_credential_by_parm_to_json(sessdata: str,
         dedeuserid: credential dedeuserid
         ac_time_value: credential ac_time_value
         log_file: the log file
+
+    Returns:
+        True if login successfully, False otherwise.
     """
     file_handler: wlw.Handler = wlw.Handler("file")
     file_handler.set_level("WARNING", "ERROR")
@@ -145,9 +149,69 @@ async def save_credential_by_parm_to_json(sessdata: str,
         log.info("Credential saved successfully.")
     else:
         log.info("登录数据保存成功。")
+    return True
 
 
-async def log_in_by_QR_code(log_file: str) -> bool:
+async def check_credential(credential: Credential, log: wlw.Logger) -> bool:
+    """
+    Check if the credential is valid.
+
+    Args:
+        credential: login credentials
+        log: the logger class
+
+    Returns:
+        True if credential is valid, False otherwise.
+    """
+    try:
+        credential.raise_for_no_sessdata()
+    except CredentialNoSessdataException:
+        if language == "en":
+            log.error("Login failed! Missing sessdata.")
+        else:
+            log.error("登录失败！缺失 sessdata。")
+        return False
+
+    try:
+        credential.raise_for_no_bili_jct()
+    except CredentialNoBiliJctException:
+        if language == "en":
+            log.error("Login failed! Missing bili_jct.")
+        else:
+            log.error("登录失败！缺失 bili_jct。")
+        return False
+
+    try:
+        credential.raise_for_no_buvid3()
+    except CredentialNoBuvid3Exception:
+        if language == "en":
+            log.error("Login failed! Missing buvid3.")
+        else:
+            log.error("登录失败！缺失 buvid3。")
+        return False
+
+    try:
+        credential.raise_for_no_dedeuserid()
+    except CredentialNoDedeUserIDException:
+        if language == "en":
+            log.error("Login failed! Missing dedeuserid.")
+        else:
+            log.error("登录失败！缺失 dedeuserid。")
+        return False
+
+    try:
+        credential.raise_for_no_ac_time_value()
+    except CredentialNoDedeUserIDException:
+        if language == "en":
+            log.error("Login failed! Missing ac_time_value.")
+        else:
+            log.error("登录失败！缺失 ac_time_value。")
+        return False
+
+    return True
+
+
+def log_in_by_QR_code(log_file: str) -> bool:
     """
     Login to a Bilibili account by scanning QR code.
 
@@ -174,52 +238,19 @@ async def log_in_by_QR_code(log_file: str) -> bool:
         log.info("请扫描二维码。")
     credential: Credential = login.login_with_qrcode()
 
-    try:
-        credential.raise_for_no_sessdata()
-    except CredentialNoSessdataException:
-        if language == "en":
-            log.error("Login failed!")
-        else:
-            log.error("登录失败！")
+    if not sync(check_credential(credential, log)):
         return False
 
-    try:
-        credential.raise_for_no_bili_jct()
-    except CredentialNoBiliJctException:
-        if language == "en":
-            log.error("Login failed!")
-        else:
-            log.error("登录失败！")
-        return False
-
-    try:
-        credential.raise_for_no_buvid3()
-    except CredentialNoBuvid3Exception:
-        if language == "en":
-            log.error("Login failed!")
-        else:
-            log.error("登录失败！")
-        return False
-
-    try:
-        credential.raise_for_no_dedeuserid()
-    except CredentialNoDedeUserIDException:
-        if language == "en":
-            log.error("Login failed!")
-        else:
-            log.error("登录失败！")
-        return False
-
-    user_info: dict = await user.get_self_info(credential)
+    user_info: dict = sync(user.get_self_info(credential))
     if language == "en":
         log.info(f"Login successfully! Welcome {user_info['name']}!")
     else:
         log.info(f"登录成功！欢迎您，{user_info['name']}！")
-    await save_credential_to_json(credential, log_file)
+    sync(save_credential_to_json(credential, log_file))
     return True
 
 
-async def log_in_by_password(log_file: str) -> bool:
+def log_in_by_password(log_file: str) -> bool:
     """
     Login to a Bilibili account by entering the password.
 
@@ -241,73 +272,40 @@ async def log_in_by_password(log_file: str) -> bool:
     log.add_config(sys_handler)
 
     if language == "en":
-        log.info("Please enter your username (phone number/email):\n")
+        log.info("Please enter your username (phone number/email):")
     else:
-        log.info("请输入您的用户名（手机号/邮箱）：\n")
-    user_name: str = str(sys.stdin.readline())
+        log.info("请输入您的用户名（手机号/邮箱）：")
+    user_name: str = str(sys.stdin.readline()).removesuffix("\n")
     if language == "en":
-        log.info("Please enter password:\n")
+        password: str = str(getpass.getpass("Please enter password:\n"))
     else:
-        log.info("请输入密码：\n")
-    password: str = str(sys.stdin.readline())
+        password: str = str(getpass.getpass("请输入密码：\n"))
 
     c = login.login_with_password(user_name, password)
 
     if isinstance(c, login.Check):
         if language == "en":
-            log.error("Login failed!")
+            log.error("Login failed! Still need to verify.")
         else:
-            log.error("登录失败！")
+            log.error("登录失败！仍需要验证。")
         return False
     else:
         credential: Credential = c
+    credential.buvid3 = login.get_live_buvid()
 
-    try:
-        credential.raise_for_no_sessdata()
-    except CredentialNoSessdataException:
-        if language == "en":
-            log.error("Login failed!")
-        else:
-            log.error("登录失败！")
+    if not sync(check_credential(credential, log)):
         return False
 
-    try:
-        credential.raise_for_no_bili_jct()
-    except CredentialNoBiliJctException:
-        if language == "en":
-            log.error("Login failed!")
-        else:
-            log.error("登录失败！")
-        return False
-
-    try:
-        credential.raise_for_no_buvid3()
-    except CredentialNoBuvid3Exception:
-        if language == "en":
-            log.error("Login failed!")
-        else:
-            log.error("登录失败！")
-        return False
-
-    try:
-        credential.raise_for_no_dedeuserid()
-    except CredentialNoDedeUserIDException:
-        if language == "en":
-            log.error("Login failed!")
-        else:
-            log.error("登录失败！")
-        return False
-
-    user_info: dict = await user.get_self_info(credential)
+    user_info: dict = sync(user.get_self_info(credential))
     if language == "en":
         log.info(f"Login successfully! Welcome {user_info['name']}!")
     else:
         log.info(f"登录成功！欢迎您，{user_info['name']}！")
-    await save_credential_to_json(credential, log_file)
+    sync(save_credential_to_json(credential, log_file))
     return True
 
 
-async def log_in_by_verification_code(log_file: str) -> bool:
+def log_in_by_verification_code(log_file: str) -> bool:
     """
     Login to a Bilibili account by using the verification code.
 
@@ -330,73 +328,40 @@ async def log_in_by_verification_code(log_file: str) -> bool:
 
     settings.geetest_auto_open = False
     if language == "en":
-        log.info("Please enter your phone number:\n")
+        log.info("Please enter your phone number:")
     else:
-        log.info("请输入您的手机号：\n")
-    phone_number: str = str(sys.stdin.readline())
+        log.info("请输入您的手机号：")
+    phone_number: str = str(sys.stdin.readline()).removesuffix("\n")
     if language == "en":
         log.info("Please wait for receiving the verification code...")
     else:
         log.info("请等待接收验证码...")
     login.send_sms(login.PhoneNumber(phone_number, country="+86"))
     if language == "en":
-        log.info("Please enter the verification code:\n")
+        code: str = str(getpass.getpass("Please enter the verification code:\n"))
     else:
-        log.info("请输入验证码：\n")
-    code: str = str(sys.stdin.readline())
+        code: str = str(getpass.getpass("请输入验证码：\n"))
     c = login.login_with_sms(login.PhoneNumber(phone_number, country="+86"), code)
 
     if isinstance(c, login.Check):
         if language == "en":
-            log.error("Login failed!")
+            log.error("Login failed! Still need to verify.")
         else:
-            log.error("登录失败！")
+            log.error("登录失败！仍需要验证。")
         return False
     else:
         credential: Credential = c
+    credential.buvid3 = login.get_live_buvid()
 
-    try:
-        credential.raise_for_no_sessdata()
-    except CredentialNoSessdataException:
-        if language == "en":
-            log.error("Login failed!")
-        else:
-            log.error("登录失败！")
+    if not sync(check_credential(credential, log)):
         return False
 
-    try:
-        credential.raise_for_no_bili_jct()
-    except CredentialNoBiliJctException:
-        if language == "en":
-            log.error("Login failed!")
-        else:
-            log.error("登录失败！")
-        return False
-
-    try:
-        credential.raise_for_no_buvid3()
-    except CredentialNoBuvid3Exception:
-        if language == "en":
-            log.error("Login failed!")
-        else:
-            log.error("登录失败！")
-        return False
-
-    try:
-        credential.raise_for_no_dedeuserid()
-    except CredentialNoDedeUserIDException:
-        if language == "en":
-            log.error("Login failed!")
-        else:
-            log.error("登录失败！")
-        return False
-
-    user_info: dict = await user.get_self_info(credential)
+    user_info: dict = sync(user.get_self_info(credential))
     if language == "en":
         log.info(f"Login successfully! Welcome {user_info['name']}!")
     else:
         log.info(f"登录成功！欢迎您，{user_info['name']}！")
-    await save_credential_to_json(credential, log_file)
+    sync(save_credential_to_json(credential, log_file))
     return True
 
 
@@ -422,7 +387,7 @@ async def refresh_credential(credential: Credential, log_file: str) -> Credentia
     log.add_config(file_handler)
     log.add_config(sys_handler)
 
-    if credential.chcek_refresh():
+    if await credential.check_refresh():
         await credential.refresh()
         if language == "en":
             log.info("Credential refreshed successfully.")

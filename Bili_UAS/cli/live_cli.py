@@ -23,24 +23,26 @@ class BiliLiveConfigAuto(object):
     """whether to save all live danmu"""
     danmu_disconnect: bool = True
     """whether to disconnect from the live broadcast room by sending danmu '###disconnect###'"""
-    auto_disconnect: bool = False
+    auto_disconnect: bool = True
     """whether to disconnect from the live room automatically when the live broadcast ends"""
     max_retry: int = 10
     """the maximum number of reconnection attempts when the live broadcast room is unexpectedly disconnected"""
     retry_after: float = 1
     """time interval for trying to initiate a reconnection after accidental disconnection, unit: second"""
-    revenue_interval: float = 5
-    """time interval for revenue statistics, unit: minute"""
-    danmu_interval: float = 30
-    """time interval for danmu situations, unit: second"""
+    forever: bool = True
+    """whether to long connect the live broadcast room"""
     robust: bool = True
     """whether to filter marked danmu"""
     robust_interval: float = 5
     """time interval for filtering marked danmu, unit: minute"""
+    danmu_interval: float = 5
+    """time interval for conducting danmu frequency analysis, unit: minute"""
     mask: Union[str, None] = None
-    """mask for generating danmu word cloud image"""
-    forever: bool = True
-    """whether to long connect the live broadcast room"""
+    """Mask for generating danmu word cloud image."""
+    revenue_interval: float = 5
+    """time interval for revenue statistics, unit: minute"""
+    view_interval: float = 5
+    """time interval for view statistics, unit: minute"""
 
 
 @dataclass
@@ -62,7 +64,7 @@ class BiliLiveConfigMonitor(object):
     """the maximum number of reconnection attempts when the live broadcast room is unexpectedly disconnected"""
     retry_after: float = 1
     """time interval for trying to initiate a reconnection after accidental disconnection, unit: second"""
-    forever: bool = True
+    forever: bool = False
     """whether to long connect the live broadcast room"""
 
 
@@ -73,16 +75,18 @@ class BiliLiveConfigProcess(object):
     """
     data_dir: Union[str, None] = None
     """the file where the data is located"""
-    revenue_interval: float = 5
-    """time interval for revenue statistics, unit: minute"""
-    danmu_interval: float = 30
-    """time interval for danmu situations, unit: second"""
     robust: bool = True
     """whether to filter marked danmu"""
     robust_interval: float = 5
     """time interval for filtering marked danmu, unit: minute"""
+    danmu_interval: float = 5
+    """time interval for conducting danmu frequency analysis, unit: minute"""
     mask: Union[str, None] = None
     """Mask for generating danmu word cloud image."""
+    revenue_interval: float = 5
+    """time interval for revenue statistics, unit: minute"""
+    view_interval: float = 5
+    """time interval for view statistics, unit: minute"""
 
 
 mode_configs: dict[str, Union[BiliLiveConfigAuto, BiliLiveConfigMonitor, BiliLiveConfigProcess]] = {}

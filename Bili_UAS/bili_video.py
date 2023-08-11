@@ -6,7 +6,6 @@ This module provides a command line interface for downloading videos, audio or g
 
 
 from __future__ import annotations
-import matplotlib.pyplot as plt
 import tyro
 from Bili_UAS.utils import config_utils as ucu, video_utils as uvu
 from Bili_UAS.scripts import video as sv, log_in as sli
@@ -16,6 +15,8 @@ from bilibili_api import sync
 import os
 from typing import Union
 from numpy import typing as npt
+import numpy as np
+import cv2 as cv
 
 
 language: str = ucu.load_language_from_txt()
@@ -30,7 +31,7 @@ def sync_tyro_main(config: Union[cvc.BiliVideoConfigWordCloud, cvc.BiliVideoConf
     """
     work_dir: str = sync(ucu.load_work_dir_from_txt())
     log_output: str = os.path.join(work_dir, "log")
-    log_file: str = os.path.join(log_output, "video_log.txt")
+    log_file: str = os.path.join(log_output, "video_log")
 
     file_handler: wlw.Handler = wlw.Handler("file")
     file_handler.set_level("WARNING", "ERROR")
@@ -55,7 +56,7 @@ def sync_tyro_main(config: Union[cvc.BiliVideoConfigWordCloud, cvc.BiliVideoConf
                 raise wam.ParameterInputError("未输入视频ID！")
         wm = sv.WordCloudContent(config.mode)
         if config.mask is not None:
-            word_cloud_mask: npt.NDArray = plt.imread(config.mask)
+            word_cloud_mask: npt.NDArray = cv.imread(config.mask).astype(np.uint8)
         else:
             word_cloud_mask = None
         sync(sv.word_cloud(config.video_id, credential, wm, config.sec, word_cloud_mask, log_file, work_dir))
@@ -70,6 +71,7 @@ def sync_tyro_main(config: Union[cvc.BiliVideoConfigWordCloud, cvc.BiliVideoConf
             video = uvu.BiliVideo(log=log_file, aid=config.video_id, credential=credential, work_dir=work_dir)
         else:
             video = uvu.BiliVideo(log=log_file, bvid=config.video_id, credential=credential, work_dir=work_dir)
+        sync(video.init_all())
         sync(video.download(dm))
 
 
