@@ -31,24 +31,32 @@ def sync_tyro_main(work_dir: Optional[str] = None,
         show: whether to show the current configuration
     """
     if show:
+        temp_hide: bool = True
         try:
-            temp_hide: bool = True
             work_dir: str = sync(ucu.load_work_dir_from_txt(temp_hide))
         except wam.FileMissError:
             work_dir: Optional[str] = None
+
+        try:
+            ffmpeg: Optional[str] = sync(ucu.load_ffmpeg_path_from_txt(temp_hide))
+        except wam.FileMissError:
+            ffmpeg: Optional[str] = None
+
+        mark: list[str] = sync(ucu.load_danmu_mark_from_txt(temp_hide))
+        language: str = ucu.load_language_from_txt()
 
         if language == "en":
             print("Current configuration:\n"
                      "\tWorking directory: {}\n"
                      "\tFFmpeg path: {}\n"
                      "\tDanmu mark: {}\n"
-                     "\tLanguage: {}".format(work_dir, ffmpeg, [m for m in mark], language))
+                     "\tLanguage: {}".format(work_dir, ffmpeg, mark, language))
         else:
             print("当前配置为：\n"
                      "\t工作目录：{}\n"
                      "\tFFmpeg路径：{}\n"
                      "\t弹幕标记：{}\n"
-                     "\t语言：{}".format(work_dir, ffmpeg, [m for m in mark], language))
+                     "\t语言：{}".format(work_dir, ffmpeg, mark, language))
         return
 
     if work_dir is not None:
@@ -88,7 +96,6 @@ def sync_tyro_main(work_dir: Optional[str] = None,
             log.warning("No danmu mark specified.")
         else:
             log.warning("未指定弹幕标记。")
-        mark_list: list[str] = []
 
     sync(sc.save_language_to_txt(language))
 
