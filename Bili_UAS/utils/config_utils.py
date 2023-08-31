@@ -24,9 +24,12 @@ def load_language_from_txt() -> str:
         return language
 
 
-async def load_work_dir_from_txt() -> str:
+async def load_work_dir_from_txt(hide: bool = False) -> str:
     """
     Load a working path from file.
+
+    Args:
+        hide: whether to hide the prompt
 
     Returns:
         the work directory
@@ -41,10 +44,11 @@ async def load_work_dir_from_txt() -> str:
     else:
         with open(config_file, "r") as f:
             work_dir: str = f.readline().removesuffix("\n")
-        if language == "en":
-            print("INFO: Historical working path found, using historical working path.")
-        else:
-            print("INFO: 找到历史工作路径, 使用历史工作路径.")
+        if not hide:
+            if language == "en":
+                print("INFO: Historical working path found, using historical working path.")
+            else:
+                print("INFO: 找到历史工作路径, 使用历史工作路径.")
         return work_dir
 
 
