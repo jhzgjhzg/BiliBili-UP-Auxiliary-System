@@ -12,7 +12,7 @@ import tyro
 from typing import Literal, Optional
 import os
 from bilibili_api import sync
-from Bili_UAS.writer import log_writer as wlw
+from Bili_UAS.writer import log_writer as wlw, abnormal_monitor as wam
 
 
 def sync_tyro_main(work_dir: Optional[str] = None,
@@ -30,6 +30,27 @@ def sync_tyro_main(work_dir: Optional[str] = None,
         language: the language for program prompts
         show: whether to show the current configuration
     """
+    if show:
+        try:
+            temp_hide: bool = True
+            work_dir: str = sync(ucu.load_work_dir_from_txt(temp_hide))
+        except wam.FileMissError:
+            work_dir: Optional[str] = None
+
+        if language == "en":
+            print("Current configuration:\n"
+                     "\tWorking directory: {}\n"
+                     "\tFFmpeg path: {}\n"
+                     "\tDanmu mark: {}\n"
+                     "\tLanguage: {}".format(work_dir, ffmpeg, [m for m in mark], language))
+        else:
+            print("当前配置为：\n"
+                     "\t工作目录：{}\n"
+                     "\tFFmpeg路径：{}\n"
+                     "\t弹幕标记：{}\n"
+                     "\t语言：{}".format(work_dir, ffmpeg, [m for m in mark], language))
+        return
+
     if work_dir is not None:
         if not os.path.exists(work_dir):
             os.makedirs(work_dir, exist_ok=True)
@@ -50,21 +71,6 @@ def sync_tyro_main(work_dir: Optional[str] = None,
     log: wlw.Logger = wlw.Logger()
     log.add_config(file_handler)
     log.add_config(sys_handler)
-
-    if show:
-        if language == "en":
-            log.info("Current configuration:\n"
-                     "\tWorking directory: {}\n"
-                     "\tFFmpeg path: {}\n"
-                     "\tDanmu mark: {}\n"
-                     "\tLanguage: {}".format(work_dir, ffmpeg, [m for m in mark], language))
-        else:
-            log.info("当前配置为：\n"
-                     "\t工作目录：{}\n"
-                     "\tFFmpeg路径：{}\n"
-                     "\t弹幕标记：{}\n"
-                     "\t语言：{}".format(work_dir, ffmpeg, [m for m in mark], language))
-        return
 
     if ffmpeg is not None:
         sync(sc.save_ffmpeg_path_to_txt(ffmpeg, language))
