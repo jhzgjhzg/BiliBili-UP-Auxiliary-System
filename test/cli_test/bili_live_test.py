@@ -39,6 +39,6 @@ def process_mode_test():
 
 if __name__ == "__main__":
     # auto_mode_test()
-    # monitor_mode_test()
+    monitor_mode_test()
     # process_mode_test()
     pass

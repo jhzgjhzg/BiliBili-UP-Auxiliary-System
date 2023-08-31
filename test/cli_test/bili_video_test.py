@@ -13,7 +13,7 @@ def video_download_test():
     """
     print("Video download test:")
     config: cvc.BiliVideoConfigDownload = cvc.BiliVideoConfigDownload()
-    config.video_id = "BV1gG4y1X7DJ"
+    config.video_id = "BV13L41127Bo"
     bv.sync_tyro_main(config)
 
 
@@ -41,7 +41,7 @@ def word_cloud_test():
 
 
 if __name__ == "__main__":
-    # video_download_test()
+    video_download_test()
     # audio_download_test()
-    word_cloud_test()
+    # word_cloud_test()
     pass

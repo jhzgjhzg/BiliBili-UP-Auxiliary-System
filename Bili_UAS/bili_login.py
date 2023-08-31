@@ -13,6 +13,7 @@ import os
 from typing import Literal, Union
 import tyro
 from Bili_UAS.writer import log_writer as wlw, abnormal_monitor as wam
+from bilibili_api.exceptions.LoginError import LoginError
 
 
 def sync_tyro_main(mode: Literal[1, 2, 3, 4] = 1,
@@ -62,22 +63,37 @@ def sync_tyro_main(mode: Literal[1, 2, 3, 4] = 1,
             else:
                 raise wam.ParameterInputError("选择指定参数登录方式，但输入参数缺失！")
 
-    if m == sli.LoginMode.QR:
-        flag = sli.log_in_by_QR_code(log_file)
-    elif m == sli.LoginMode.PASSWORD:
-        flag = sli.log_in_by_password(log_file)
-    elif m == sli.LoginMode.VERIFICATION:
-        flag = sli.log_in_by_verification_code(log_file)
-    else:
-        flag = sync(sli.save_credential_by_parm_to_json(sessdata, bili_jct, buvid3,
-                                                        dedeuserid, ac_time_value, log_file))
+    log_count: int = 0
+    while True:
+        try:
+            if m == sli.LoginMode.QR:
+                flag = sli.log_in_by_QR_code(log_file)
+            elif m == sli.LoginMode.PASSWORD:
+                flag = sli.log_in_by_password(log_file)
+            elif m == sli.LoginMode.VERIFICATION:
+                flag = sli.log_in_by_verification_code(log_file)
+            else:
+                flag = sync(sli.save_credential_by_parm_to_json(sessdata, bili_jct, buvid3,
+                                                                dedeuserid, ac_time_value, log_file))
+            log_count += 1
+        except LoginError as e:
+            flag = False
+            log.error(e.msg)
+            if language == "en":
+                log.error(
+                    "Login failed, please try logging in again! (priority is to logging in by scanning the QR code "
+                    "or specify login parameters)")
+            else:
+                log.error("登录失败，请重试登录！（优先通过扫描二维码登录或指定登录参数）")
 
-    if not flag:
-        if language == "en":
-            log.error("Login failed, please try logging in again! (priority is to logging in by scanning the QR code "
-                      "or specify login parameters)")
-        else:
-            log.error("登录失败，请重试登录！（优先通过扫描二维码登录或指定登录参数）")
+        if flag:
+            break
+        if log_count > 3:
+            if language == "en":
+                log.warning("Too many login failures, exit login!")
+            else:
+                log.warning("登录失败次数过多，退出登录！")
+            break
 
 
 def tyro_cli() -> None:
