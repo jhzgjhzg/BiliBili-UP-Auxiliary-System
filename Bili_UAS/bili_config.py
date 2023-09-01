@@ -18,8 +18,9 @@ from Bili_UAS.writer import log_writer as wlw, abnormal_monitor as wam
 def sync_tyro_main(work_dir: Optional[str] = None,
                    ffmpeg: Optional[str] = None,
                    mark: Optional[str] = None,
-                   language: Literal["en", "zh-CN"] = "en",
-                   show: bool = False) -> None:
+                   language: Literal["en", "zh-CN"] = None,
+                   show: bool = False,
+                   clean: bool = False) -> None:
     """
     Set working path, ffmpeg path, language and danmu mark.
 
@@ -29,7 +30,13 @@ def sync_tyro_main(work_dir: Optional[str] = None,
         mark: mark for marking live danmu, multiple marks need to be entered consecutive
         language: the language for program prompts
         show: whether to show the current configuration
+        clean: whether to clean the configuration
     """
+    if clean:
+        ucu.clean_config()
+        print("Configuration cleaned. / 配置已清除。")
+        return
+
     if show:
         temp_hide: bool = True
         try:
@@ -83,21 +90,27 @@ def sync_tyro_main(work_dir: Optional[str] = None,
     if ffmpeg is not None:
         sync(sc.save_ffmpeg_path_to_txt(ffmpeg, language))
     else:
-        if language == "en":
-            log.warning("No ffmpeg path specified, video cannot be downloaded.")
-        else:
-            log.warning("未指定ffmpeg路径，将无法下载视频。")
+        if not os.path.exists(".ffmpeg"):
+            if language == "en":
+                log.warning("No ffmpeg path specified, video cannot be downloaded.")
+            else:
+                log.warning("未指定ffmpeg路径，将无法下载视频。")
 
     if mark is not None:
         mark_list: list[str] = [m for m in mark]
         sync(sc.save_danmu_mark_to_txt(mark_list, language))
     else:
-        if language == "en":
-            log.warning("No danmu mark specified.")
-        else:
-            log.warning("未指定弹幕标记。")
+        if not os.path.exists(".danmu_mark"):
+            if language == "en":
+                log.warning("No danmu mark specified, use the default mark \"#\".")
+            else:
+                log.warning("未指定弹幕标记，使用默认标记\"#\"。")
 
-    sync(sc.save_language_to_txt(language))
+    if language is not None:
+        sync(sc.save_language_to_txt(language))
+    else:
+        if not os.path.exists(".language"):
+            log.warning("No language specified, using English by default.")
 
 
 def tyro_cli() -> None:

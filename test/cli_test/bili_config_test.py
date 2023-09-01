@@ -13,12 +13,12 @@ def main():
     Main function.
     """
     test_dir: str = os.path.join(os.path.dirname(__file__), "..")
-    show_test_dir = None
     ffmpeg_path: str = "ffmpeg"
     mark: str = "#$"
     language: Literal["en", "zh-CN"] = "zh-CN"
-    show: bool = True
-    bc.sync_tyro_main(show_test_dir, ffmpeg_path, mark, language, show)
+    show: bool = False
+    clean: bool = False
+    bc.sync_tyro_main(None, ffmpeg_path, None, None, show, clean)
 
 
 if __name__ == "__main__":

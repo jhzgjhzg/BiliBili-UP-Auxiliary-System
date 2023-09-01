@@ -52,9 +52,12 @@ async def load_work_dir_from_txt(hide: bool = False) -> str:
         return work_dir
 
 
-async def load_ffmpeg_path_from_txt() -> str:
+async def load_ffmpeg_path_from_txt(hide: bool = False) -> str:
     """
     Load the ffmpeg path.
+
+    Args:
+        hide: whether to hide the prompt
 
     Returns:
         the path of ffmpeg
@@ -69,8 +72,54 @@ async def load_ffmpeg_path_from_txt() -> str:
     else:
         with open(ffmpeg_file, "r") as f:
             ffmpeg: str = f.readline().removesuffix("\n")
-        if language == "en":
-            print("INFO: Historical ffmpeg path found, using historical ffmpeg path.")
-        else:
-            print("INFO: 找到历史ffmpeg路径, 使用历史ffmpeg路径.")
+        if not hide:
+            if language == "en":
+                print("INFO: Historical ffmpeg path found, using historical ffmpeg path.")
+            else:
+                print("INFO: 找到历史ffmpeg路径, 使用历史ffmpeg路径.")
         return ffmpeg
+
+
+async def load_danmu_mark_from_txt(hide: bool = False) -> list[str]:
+    """
+    Load the danmu mark.
+
+    Args:
+        hide: whether to hide the prompt
+
+    Returns:
+        the danmu mark
+    """
+    mark_file: str = ".danmu_mark"
+    language: str = load_language_from_txt()
+    if not os.path.exists(mark_file):
+        return ["#"]
+    else:
+        mark: list[str] = []
+        with open(mark_file, "r") as f:
+            for line in f.readlines():
+                mark.append(line.removesuffix("\n"))
+        if not hide:
+            if language == "en":
+                print("INFO: Historical danmu mark found, using historical danmu mark.")
+            else:
+                print("INFO: 找到历史弹幕标记, 使用历史弹幕标记.")
+        return mark
+
+
+def clean_config() -> None:
+    """
+    Clean the configuration.
+    """
+    work_dir: str = ".work_dir"
+    ffmpeg: str = ".ffmpeg"
+    mark: str = ".danmu_mark"
+    language: str = ".language"
+    if os.path.exists(work_dir):
+        os.remove(work_dir)
+    if os.path.exists(ffmpeg):
+        os.remove(ffmpeg)
+    if os.path.exists(mark):
+        os.remove(mark)
+    if os.path.exists(language):
+        os.remove(language)
