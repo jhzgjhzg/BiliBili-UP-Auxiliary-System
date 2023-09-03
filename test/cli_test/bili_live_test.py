@@ -23,6 +23,7 @@ def monitor_mode_test():
     """
     print("Monitor mode test:")
     config: clc.BiliLiveConfigMonitor = clc.BiliLiveConfigMonitor()
+    config.danmu_disconnect = True
     config.live_id = 27183290
     bl.sync_tyro_main(config)
 

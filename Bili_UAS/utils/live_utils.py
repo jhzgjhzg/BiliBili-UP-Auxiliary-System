@@ -5,8 +5,7 @@ This module provides some classes to help you get and process live data.
 """
 
 
-# data test_output path template: live_output/{room_id}/{live_start_time}/file_name: {danmu.xlsx, marked_danmu.xlsx,
-#                            robust_danmu.xlsx, gift.xlsx, guard.xlsx, sc.xlsx, view.txt}
+# data test_output path template: live_output/{room_id}/{live_start_time}/file_name
 # live info path: live_output/{room_id}/live_info.txt
 
 
@@ -23,7 +22,7 @@ import pandas as pd
 from pandas import DataFrame
 import numpy as np
 import scipy.interpolate as spi
-from typing import Optional, Union
+from typing import Optional
 from numpy import typing as npt
 import jieba
 import wordcloud
@@ -195,7 +194,6 @@ class BiliLiveMonitor(bal.LiveRoom, bal.LiveDanmaku):
         self.guard_excel: Optional[DataFrame] = None
         self.guard_excel_file: Optional[str] = None
         self.revenue_txt_file: Optional[str] = None
-        self.view_txt_file: Optional[str] = None
         self.high_energy_number_txt_file: Optional[str] = None
         self.watched_number_txt_file: Optional[str] = None
         self.live_info_txt_file: Optional[str] = None
@@ -392,11 +390,6 @@ class BiliLiveMonitor(bal.LiveRoom, bal.LiveDanmaku):
                 else:
                     f.write(f"short_id: None\n")
 
-        self.view_txt_file: str = os.path.join(current_live_output_dir, "view.txt")
-        if not os.path.exists(self.view_txt_file):
-            with open(self.view_txt_file, "a") as f:
-                f.write(f"time,view\n")
-
         self.high_energy_number_txt_file: str = os.path.join(current_live_output_dir, "high_energy_user.txt")
         if not os.path.exists(self.high_energy_number_txt_file):
             with open(self.high_energy_number_txt_file, "a") as f:
@@ -408,7 +401,12 @@ class BiliLiveMonitor(bal.LiveRoom, bal.LiveDanmaku):
                 f.write(f"time,number\n")
 
         self.todo_txt_file: str = os.path.join(self.work_dir, ".todo")
-        if not await is_string_in_file(current_live_output_dir, self.todo_txt_file):
+        if os.path.exists(self.todo_txt_file):
+            if not await is_string_in_file(current_live_output_dir, self.todo_txt_file):
+                with open(self.todo_txt_file, "a") as f:
+                    f.write(os.path.abspath(current_live_output_dir))
+                    f.write("\n")
+        else:
             with open(self.todo_txt_file, "a") as f:
                 f.write(os.path.abspath(current_live_output_dir))
                 f.write("\n")
@@ -576,24 +574,6 @@ class BiliLiveMonitor(bal.LiveRoom, bal.LiveDanmaku):
                     f.write(f"{event['data']['data']['uid']},{event['data']['data']['timestamp']},"
                             f"{event['data']['data']['total_coin'] * 0.001}\n")
 
-        @self.on("VIEW")
-        async def __view_record(event: dict) -> None:
-            """
-            Record the popularity of the live broadcast room.
-
-            Args:
-                event: API returns data
-            """
-            t: str = str(int(time.time()))
-            if live_start:
-                if language == "en":
-                    self.log.info("Popularity update.")
-                else:
-                    self.log.info("人气更新。")
-                with open(self.view_txt_file, "a") as f:
-                    f.write(t + "," + str(event['data']))
-                    f.write("\n")
-
         @self.on("ONLINE_RANK_COUNT")
         async def __high_energy_number_record(event: dict) -> None:
             """
@@ -603,11 +583,11 @@ class BiliLiveMonitor(bal.LiveRoom, bal.LiveDanmaku):
                 event: API returns data
             """
             if live_start:
+                t: str = str(int(time.time()))
                 if language == "en":
                     self.log.info("High energy number update.")
                 else:
                     self.log.info("高能人数更新。")
-                t: str = str(int(event['data']['send_time'] / 1000))
                 with open(self.high_energy_number_txt_file, "a") as f:
                     f.write(t + "," + str(event['data']['data']['count']))
                     f.write("\n")
@@ -621,7 +601,7 @@ class BiliLiveMonitor(bal.LiveRoom, bal.LiveDanmaku):
                 event: API returns data
             """
             if live_start:
-                t: str = str(int(event['data']['send_time'] / 1000))
+                t: str = str(int(time.time()))
                 with open(self.watched_number_txt_file, "a") as f:
                     f.write(t + "," + str(event['data']['data']['num']))
                     f.write("\n")
@@ -1467,45 +1447,15 @@ class LiveViewProcess(object):
         self.log_file: str = log_file
         self.start_time: int = 0
 
-        self.view_txt_file: Optional[str] = None
         self.high_energy_number_txt_file: Optional[str] = None
         self.watched_number_txt_file: Optional[str] = None
 
-        self.view: list[int] = []
-        self.view_time: list[int] = []
         self.high_energy_number: list[int] = []
         self.high_energy_number_time: list[int] = []
         self.watched_number: list[int] = []
         self.watched_number_time: list[int] = []
 
         self.output_dir: Optional[str] = None
-
-    async def load_view(self) -> None:
-        """
-        Load the view data.
-        """
-        if language == "en":
-            self.log.info("Loading the popularity data...")
-        else:
-            self.log.info("正在加载人气数据...")
-        self.view_txt_file: str = os.path.join(self.live_dir, "view.txt")
-        if not os.path.exists(self.view_txt_file):
-            if language == "en":
-                self.log.warning("There is no popularity data, which may affect subsequent!")
-            else:
-                self.log.warning("没有人气数据，这可能会影响后续操作！")
-        else:
-            with open(self.view_txt_file, "r") as f:
-                for elem in f.readlines():
-                    content: list[str] = elem.removesuffix("\n").split(",")
-                    if len(content) == 2:
-                        if content[0].isdigit() and content[1].isdigit():
-                            self.view.append(int(content[1]))
-                            self.view_time.append(int(content[0]))
-            if language == "en":
-                self.log.info("Load the popularity data successful.")
-            else:
-                self.log.info("成功加载人气数据。")
 
     async def load_high_energy_number(self) -> None:
         """
@@ -1565,7 +1515,6 @@ class LiveViewProcess(object):
         """
         Load the data.
         """
-        await self.load_view()
         await self.load_high_energy_number()
         await self.load_watched_number()
         await self.load_output_file()
@@ -1580,44 +1529,6 @@ class LiveViewProcess(object):
 
         sta_time: str = os.path.split(self.live_dir)[-1]
         self.start_time: int = int(time.mktime(time.strptime(sta_time, "%Y-%m-%d_%H-%M-%S")))
-
-    @wlw.async_separate()
-    async def view_statistics(self, interval: float) -> None:
-        """
-        Statistics the view.
-
-        Args:
-            interval: the minute interval for view analysis
-        """
-        if language == "en":
-            self.log.info("Statistics the popularity...")
-        else:
-            self.log.info("正在统计人气数据...")
-        if not self.view:
-            if language == "en":
-                self.log.warning("There is no popularity data!")
-                self.log.error(f"Please check that {os.path.join(self.live_dir, 'view.txt')} "
-                               f"exists and is not empty.")
-            else:
-                self.log.warning("没有人气数据！")
-                self.log.error(f"请检查 {os.path.join(self.live_dir, 'view.txt')} 是否存在且不为空。")
-        else:
-            view_time: list[int] = [self.view_time[i] - self.start_time for i in range(len(self.view_time))]
-
-            y_view, x_view_time = await _select_data(self.view, view_time, interval)
-            x_view_time = [time_format(x_view_time[i]) for i in range(len(x_view_time))]
-
-            plt.figure(figsize=(2160 / 200, 1440 / 200), dpi=200)
-            plt.plot(x_view_time, y_view)
-            plt.xlabel("Time")
-            plt.ylabel("Popularity")
-            plt.title("Popularity Analysis")
-            name: str = os.path.join(self.output_dir, "popularity_analysis.png")
-            plt.savefig(name)
-            if language == "en":
-                self.log.info(f"The analysis of popularity is completed, and the result graph is saved as {name}.")
-            else:
-                self.log.info(f"人气分析完成，结果图保存为 {name} 。")
 
     @wlw.async_separate()
     async def high_energy_number_statistics(self, interval: float) -> None:
@@ -1709,7 +1620,6 @@ class LiveViewProcess(object):
         Args:
             interval: the minute interval for statistics
         """
-        await self.view_statistics(interval)
         await self.high_energy_number_statistics(interval)
         await self.watched_number_statistics(interval)
 

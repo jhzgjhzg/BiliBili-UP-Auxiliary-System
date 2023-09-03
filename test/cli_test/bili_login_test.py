@@ -39,8 +39,8 @@ def parameter_test():
 
 
 if __name__ == "__main__":
-    # QR_test()
-    password_test()
+    QR_test()
+    # password_test()
     # verification_test()
     # parameter_test()
     pass

@@ -4,7 +4,7 @@ with open("README.md", "r", encoding="utf-8") as f:
     long_description = f.read()
 
 requirements = [
-    'bilibili-api-python>=15.5.5',
+    'bilibili-api-python>=16.0.0',
     'setuptools>=68.1.2',
     'wordcloud>=1.9.2',
     'jieba>=0.42.1',
@@ -23,8 +23,8 @@ requirements = [
 
 setup(
     name='bili-uas',
-    version='0.3.5',
-    license='GPLv3',
+    version='0.4.0',
+    license='AGPLv3',
     author='jhzg',
     author_email='jhzg02200059@163.com',
     url='https://github.com/jhzgjhzg/BiliBili-UP-Auxiliary-System',

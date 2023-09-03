@@ -16,7 +16,7 @@ def main():
     ffmpeg_path: str = "ffmpeg"
     mark: str = "#$"
     language: Literal["en", "zh-CN"] = "zh-CN"
-    show: bool = False
+    show: bool = True
     clean: bool = False
     bc.sync_tyro_main(None, ffmpeg_path, None, None, show, clean)
 
